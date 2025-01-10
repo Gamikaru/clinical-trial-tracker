@@ -2,34 +2,56 @@ import {
     ArcElement,
     BarElement,
     CategoryScale,
+    ChartData,
     Chart as ChartJS,
+    ChartOptions,
     Legend,
     LinearScale,
+    Title,
     Tooltip,
 } from "chart.js";
-import React, { useEffect, useState } from "react";
-import { Bar, Pie } from "react-chartjs-2";
+import React, { useEffect, useMemo, useState } from "react";
 import useStudyStats from "../hooks/useStudyStats";
 import useTrialMetadata from "../hooks/useTrialMetaData";
 import useTrials from "../hooks/useTrials";
 
-// Register Chart.js once
+// Importing optimized components
+import StudyMetadataTable from "../components/StudyMetadataTable";
+import StudyStatistics from "../components/StudyStatistics";
+import SummaryCards from "../components/SummaryCards";
+import TopConditionsChart from "../components/TopConditionsChart";
+import TrialsByStatusChart from "../components/TrialsByStatusChart";
+
+// Register Chart.js components
 ChartJS.register(
   BarElement,
   CategoryScale,
   LinearScale,
   Tooltip,
   Legend,
-  ArcElement
+  ArcElement,
+  Title
 );
 
-const VisualizationDashboard: React.FC = () => {
-    const [searchParams] = useState<any>({
-        format: "json",
-        pageSize: 50,
-        fields: "NCTId,BriefTitle,OverallStatus,HasResults,protocolSection.statusModule.overallStatus", // Removed protocolSection.conditionsModule.conditionList
-      });
+// Define interfaces for chart data
+interface StatusData extends ChartData<"bar", number[], string> {}
+interface ConditionData extends ChartData<"pie", number[], string> {}
 
+/**
+ * The main dashboard component that visualizes trial data.
+ *
+ * @returns {JSX.Element} The rendered visualization dashboard.
+ */
+const VisualizationDashboard: React.FC = () => {
+  // Define search parameters
+  const [searchParams] = useState({
+    format: "json",
+    pageSize: 50,
+    fields:
+      "NCTId,BriefTitle,OverallStatus,HasResults,protocolSection.identificationModule.nctId,protocolSection.identificationModule.briefTitle,protocolSection.statusModule.overallStatus",
+  });
+
+  // Fetch data using custom hooks
   const { trials, loading, error } = useTrials(searchParams);
   const {
     metadata,
@@ -38,31 +60,36 @@ const VisualizationDashboard: React.FC = () => {
   } = useTrialMetadata();
   const { stats, loading: statsLoading, error: statsError } = useStudyStats();
 
-  const [statusData, setStatusData] = useState<any>(null);
-  const [conditionData, setConditionData] = useState<any>(null);
+  // State for chart data
+  const [statusData, setStatusData] = useState<StatusData | undefined>(
+    undefined
+  );
+  const [conditionData, setConditionData] = useState<ConditionData | undefined>(
+    undefined
+  );
 
+  /**
+   * Processes trial data to generate datasets for the charts.
+   */
   useEffect(() => {
-    console.log("Trials data:", trials);
     if (trials.length > 0) {
-      const statusCounts: Record<string, number> = {};
-      trials.forEach((t) => {
-        const status = t.overallStatus || "Unknown";
-        statusCounts[status] = (statusCounts[status] || 0) + 1;
-      });
+      // Calculate counts for trial statuses
+      const statusCounts: Record<string, number> = trials.reduce(
+        (acc, trial) => {
+          const status = trial.overallStatus || "Unknown";
+          acc[status] = (acc[status] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
 
-      const statusLabels = Object.keys(statusCounts);
-      const statusValues = Object.values(statusCounts);
-
-      console.log("Status counts:", statusCounts);
-      console.log("Status labels:", statusLabels);
-      console.log("Status values:", statusValues);
-
+      // Set data for Bar Chart (Trials by Status)
       setStatusData({
-        labels: statusLabels,
+        labels: Object.keys(statusCounts),
         datasets: [
           {
             label: "# of Trials",
-            data: statusValues,
+            data: Object.values(statusCounts),
             backgroundColor: [
               "rgba(54, 162, 235, 0.6)",
               "rgba(75, 192, 192, 0.6)",
@@ -70,36 +97,44 @@ const VisualizationDashboard: React.FC = () => {
               "rgba(255, 99, 132, 0.6)",
               "rgba(153, 102, 255, 0.6)",
               "rgba(255, 159, 64, 0.6)",
+              "rgba(199, 199, 199, 0.6)", // Extra color for potential additional statuses
             ],
+            borderColor: [
+              "rgba(54, 162, 235, 1)",
+              "rgba(75, 192, 192, 1)",
+              "rgba(255, 206, 86, 1)",
+              "rgba(255, 99, 132, 1)",
+              "rgba(153, 102, 255, 1)",
+              "rgba(255, 159, 64, 1)",
+              "rgba(199, 199, 199, 1)", // Matching border color
+            ],
+            borderWidth: 1,
           },
         ],
       });
 
-      const conditionCounts: Record<string, number> = {};
-      trials.forEach((t) => {
-        const c = t.condition || "Unknown";
-        conditionCounts[c] = (conditionCounts[c] || 0) + 1;
-      });
-
-      const sortedConditions = Object.entries(conditionCounts).sort(
-        (a, b) => b[1] - a[1]
+      // Calculate counts for conditions
+      const conditionCounts: Record<string, number> = trials.reduce(
+        (acc, trial) => {
+          const condition = trial.condition || "Unknown";
+          acc[condition] = (acc[condition] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
       );
-      const top10 = sortedConditions.slice(0, 10);
-      const conditionLabels = top10.map((x) => x[0]);
-      const conditionValues = top10.map((x) => x[1]);
 
-      console.log("Condition counts:", conditionCounts);
-      console.log("Sorted conditions:", sortedConditions);
-      console.log("Top 10 conditions:", top10);
-      console.log("Condition labels:", conditionLabels);
-      console.log("Condition values:", conditionValues);
+      // Get top 10 conditions
+      const top10 = Object.entries(conditionCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
 
+      // Set data for Pie Chart (Top 10 Conditions)
       setConditionData({
-        labels: conditionLabels,
+        labels: top10.map((x) => x[0]),
         datasets: [
           {
             label: "# of Trials",
-            data: conditionValues,
+            data: top10.map((x) => x[1]),
             backgroundColor: [
               "#FF6384",
               "#36A2EB",
@@ -116,128 +151,140 @@ const VisualizationDashboard: React.FC = () => {
           },
         ],
       });
+    } else {
+      // Reset chart data if no trials
+      setStatusData(undefined);
+      setConditionData(undefined);
     }
   }, [trials]);
 
+  // Combine loading states
   const isLoading = loading || metaLoading || statsLoading;
+  // Combine error states
   const isError = error || metaError || statsError;
 
-  console.log("Loading state:", isLoading);
-  console.log("Error state:", isError);
-  console.log("Metadata:", metadata);
-  console.log("Stats:", stats);
+  /**
+   * Memoizes chart options for the bar chart to optimize performance.
+   */
+  const barOptions: ChartOptions<"bar"> = useMemo(
+    () => ({
+      maintainAspectRatio: false,
+      responsive: true,
+      plugins: {
+        legend: { position: "top" },
+        title: {
+          display: true,
+          text: "Number of Trials by Status",
+          font: { size: 18 },
+        },
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: "Number of Trials",
+          },
+        },
+        x: {
+          title: {
+            display: true,
+            text: "Trial Status",
+          },
+        },
+      },
+      interaction: {
+        mode: "index" as const,
+        intersect: false,
+      },
+      onClick: (_, elements) => {
+        if (elements.length > 0 && statusData?.labels) {
+          const index = elements[0].index;
+          const label = statusData.labels[index] || "Unknown";
+          // Implement filtering or additional actions based on label
+          console.log(`Clicked on status: ${label}`);
+        }
+      },
+    }),
+    [statusData]
+  );
+
+  /**
+   * Memoizes chart options for the pie chart to optimize performance.
+   */
+  const pieOptions: ChartOptions<"pie"> = useMemo(
+    () => ({
+      maintainAspectRatio: false,
+      responsive: true,
+      plugins: {
+        legend: { position: "right" },
+        title: {
+          display: true,
+          text: "Top 10 Conditions by Number of Trials",
+          font: { size: 18 },
+        },
+        tooltip: {
+          callbacks: {
+            label: (context) =>
+              `${context.label}: ${context.parsed} Trials (${(
+                (context.parsed / trials.length) *
+                100
+              ).toFixed(2)}%)`,
+          },
+        },
+      },
+    }),
+    [trials.length]
+  );
 
   return (
-    <div className="container mx-auto px-4">
-      <h1 className="text-3xl font-bold mb-6 text-center text-primary">
+    <div className="container mx-auto px-4 py-8">
+      {/* Dashboard Title */}
+      <h1 className="text-4xl font-bold mb-8 text-center text-primary">
         Visualization Dashboard
       </h1>
 
-      {isLoading ? (
-        <div className="flex justify-center items-center">
-          <span className="loading loading-spinner loading-md"></span>
+      {/* Loading Indicator */}
+      {isLoading && (
+        <div className="flex justify-center items-center my-10">
+          <span className="loading loading-spinner loading-lg"></span>
         </div>
-      ) : isError ? (
-        <p className="text-red-500 text-center">
-          {error || metaError || statsError}
-        </p>
-      ) : (
-        <>
-          <div className="card bg-base-100 shadow-md p-6 mb-8">
-            <h2 className="text-2xl font-semibold mb-4">Trials by Status</h2>
-            {statusData ? (
-              <Bar
-                data={statusData}
-                options={{
-                  responsive: true,
-                  plugins: {
-                    legend: { position: "top" },
-                    title: {
-                      display: true,
-                      text: "Number of Trials by Status",
-                    },
-                  },
-                }}
-              />
-            ) : (
-              <p>No status data available.</p>
-            )}
-          </div>
+      )}
 
-          <div className="card bg-base-100 shadow-md p-6 mb-8">
-            <h2 className="text-2xl font-semibold mb-4">Top 10 Conditions</h2>
-            {conditionData ? (
-              <Pie
-                data={conditionData}
-                options={{
-                  responsive: true,
-                  plugins: {
-                    legend: { position: "right" },
-                    title: {
-                      display: true,
-                      text: "Number of Trials by Condition",
-                    },
-                  },
-                }}
-              />
-            ) : (
-              <p>No condition data available.</p>
-            )}
-          </div>
+      {/* Error Message */}
+      {isError && (
+        <div className="my-10">
+          <p className="text-red-500 text-center text-lg">
+            {error || metaError || statsError}
+          </p>
+        </div>
+      )}
 
-          <div className="card bg-base-100 shadow-md p-6 mb-8">
-            <h2 className="text-2xl font-semibold mb-4">Study Metadata</h2>
-            {Array.isArray(metadata) ? (
-              <div className="overflow-x-auto">
-                <table className="table w-full table-zebra">
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Description</th>
-                      <th>Type</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {metadata.map((field) => (
-                      <tr key={field.name}>
-                        <td>{field.name}</td>
-                        <td>{field.description}</td>
-                        <td>{field.type}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p>No metadata available.</p>
-            )}
-          </div>
+      {/* Main Content */}
+      {!isLoading && !isError && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Summary Cards */}
+          <SummaryCards
+            totalStudies={stats?.totalCount || 0}
+            averageSizeBytes={stats?.averageSizeBytes || 0}
+          />
 
-          <div className="card bg-base-100 shadow-md p-6 mb-8">
-            <h2 className="text-2xl font-semibold mb-4">Study Statistics</h2>
-            {stats ? (
-              <div>
-                <p>
-                  <strong>Total Studies:</strong> {stats.totalCount}
-                </p>
-                <p>
-                  <strong>Average Size (Bytes):</strong>{" "}
-                  {stats.averageSizeBytes}
-                </p>
-                <h3 className="text-xl font-semibold mt-4">Largest Studies</h3>
-                <ul className="list-disc list-inside">
-                  {stats.largestStudies.slice(0, 5).map((study) => (
-                    <li key={study.id}>
-                      {study.id}: {study.sizeBytes} Bytes
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : (
-              <p>No statistics available.</p>
-            )}
-          </div>
-        </>
+          {/* Bar Chart: Trials by Status */}
+          <TrialsByStatusChart data={statusData} options={barOptions} />
+
+          {/* Pie Chart: Top 10 Conditions */}
+          <TopConditionsChart data={conditionData} options={pieOptions} />
+
+          {/* Study Metadata Table */}
+          <StudyMetadataTable metadata={metadata || []} />
+
+          {/* Study Statistics */}
+          <StudyStatistics
+            totalCount={stats?.totalCount || 0}
+            averageSizeBytes={stats?.averageSizeBytes || 0}
+            largestStudies={stats?.largestStudies || []}
+          />
+        </div>
       )}
     </div>
   );

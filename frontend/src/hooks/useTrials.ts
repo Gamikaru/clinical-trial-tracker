@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
 
+// Define the Trial interface
 export interface Trial {
   nctId: string;
   briefTitle: string;
@@ -9,6 +10,7 @@ export interface Trial {
   condition?: string;
 }
 
+// Interface for the hook's return value
 interface UseTrialsReturn {
   trials: Trial[];
   loading: boolean;
