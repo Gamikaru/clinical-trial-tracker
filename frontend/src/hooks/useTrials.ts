@@ -1,41 +1,89 @@
 import { useEffect, useState } from "react";
-import axios from "../services/api";
+import api from "../services/api";
 
-/**
- * Trial interface defines the structure of a clinical trial object.
- */
 export interface Trial {
   nctId: string;
   briefTitle: string;
   overallStatus: string;
   hasResults: boolean;
-  condition?: string; // Optional property
-  // Add other properties as needed
+  condition?: string;
 }
 
-/**
- * useTrials hook fetches a list of trials based on search parameters.
- * @param searchParams - Parameters to filter trials
- * @returns trials data, loading state, error message, and refetch function
- */
-const useTrials = (searchParams: any) => {
+interface UseTrialsReturn {
+  trials: Trial[];
+  loading: boolean;
+  error: string | null;
+  nextPageToken: string | null;
+  refetch: (additionalParams?: any) => void;
+}
+
+const useTrials = (initialParams: any): UseTrialsReturn => {
   const [trials, setTrials] = useState<Trial[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [nextPageToken, setNextPageToken] = useState<string | null>(null);
+
+  const [params, setParams] = useState<any>(initialParams);
+
+  /**
+   * Allows dynamic updates to the search parameters from outside
+   */
+  const refetch = (additionalParams?: any) => {
+    setParams((prev: any) => ({
+      ...prev,
+      ...additionalParams,
+    }));
+  };
 
   const fetchTrials = async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get('/studies', { params: searchParams });
-      console.log("Trials Response:", response.data);
-      if (response.data && Array.isArray(response.data.studies)) {
-        setTrials(response.data.studies);
+      console.log("Fetching trials with params:", params);
+      // GET /studies with the specified params
+      const response = await api.get("/studies", { params });
+      const data = response.data;
+      console.log("API response:", data);
+
+      if (data && Array.isArray(data.studies)) {
+        const transformed = data.studies.map((study: any) => {
+          const nctId =
+            study?.protocolSection?.identificationModule?.nctId || "";
+          const briefTitle =
+            study?.protocolSection?.identificationModule?.briefTitle || "";
+          const overallStatus =
+            study?.protocolSection?.statusModule?.overallStatus || "UNKNOWN";
+          const hasResults = study?.hasResults || false;
+
+          // Pull first condition from conditionList
+          const conditionList =
+            study?.protocolSection?.conditionsModule?.conditionList?.map(
+              (c: string) => c
+            ) || [];
+          const firstCondition = conditionList[0] || "";
+
+          return {
+            nctId,
+            briefTitle,
+            overallStatus,
+            hasResults,
+            condition: firstCondition,
+          };
+        });
+
+        setTrials(transformed);
+        setNextPageToken(data.nextPageToken || null);
       } else {
         throw new Error("Studies data is not an array");
       }
     } catch (err: any) {
-      setError(err.message || "Failed to fetch trials.");
+      if (err.response) {
+        console.error("API Error Response:", err.response.data);
+        setError(err.response.data.message || "Failed to fetch trials.");
+      } else {
+        console.error("Error fetching trials:", err);
+        setError(err.message || "Failed to fetch trials.");
+      }
       setTrials([]);
     } finally {
       setLoading(false);
@@ -45,9 +93,9 @@ const useTrials = (searchParams: any) => {
   useEffect(() => {
     fetchTrials();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(searchParams)]); // Re-fetch when searchParams change
+  }, [JSON.stringify(params)]);
 
-  return { trials, loading, error, refetch: fetchTrials };
+  return { trials, loading, error, nextPageToken, refetch };
 };
 
 export default useTrials;

@@ -1,15 +1,8 @@
-/**
- * components/Dashboard.tsx
- *
- * An alternate or advanced Dashboard that demonstrates charting (Bar, Pie).
- * Uses the same useTrials (with possibly large pageSize), useTrialMetadata, and useStudyStats.
- */
-
 import {
     ArcElement,
     BarElement,
     CategoryScale,
-    Chart,
+    Chart as ChartJS,
     Legend,
     LinearScale,
     Tooltip,
@@ -18,12 +11,10 @@ import React, { useEffect, useState } from "react";
 import { Bar, Pie } from "react-chartjs-2";
 import useStudyStats from "../hooks/useStudyStats";
 import useTrialMetadata from "../hooks/useTrialMetaData";
-import useTrials, { Trial } from "../hooks/useTrials";
+import useTrials from "../hooks/useTrials";
 
-/**
- * Register Chart.js components
- */
-Chart.register(
+// Register Chart.js once
+ChartJS.register(
   BarElement,
   CategoryScale,
   LinearScale,
@@ -32,14 +23,13 @@ Chart.register(
   ArcElement
 );
 
-const Dashboard: React.FC = () => {
-  const [searchParams, setSearchParams] = useState<any>({
-    pageSize: 100, // Grab more results for aggregated data
-    query: { cond: "" },
-    filter: { overallStatus: "" },
-  });
+const VisualizationDashboard: React.FC = () => {
+    const [searchParams] = useState<any>({
+        format: "json",
+        pageSize: 50,
+        fields: "NCTId,BriefTitle,OverallStatus,HasResults,protocolSection.statusModule.overallStatus", // Removed protocolSection.conditionsModule.conditionList
+      });
 
-  // Hook usage
   const { trials, loading, error } = useTrials(searchParams);
   const {
     metadata,
@@ -48,24 +38,24 @@ const Dashboard: React.FC = () => {
   } = useTrialMetadata();
   const { stats, loading: statsLoading, error: statsError } = useStudyStats();
 
-  // Chart states
   const [statusData, setStatusData] = useState<any>(null);
   const [conditionData, setConditionData] = useState<any>(null);
 
-  /**
-   * Once trials are loaded, aggregate data to feed the charts.
-   */
   useEffect(() => {
+    console.log("Trials data:", trials);
     if (trials.length > 0) {
-      // Status distribution
       const statusCounts: Record<string, number> = {};
-      trials.forEach((t: Trial) => {
+      trials.forEach((t) => {
         const status = t.overallStatus || "Unknown";
         statusCounts[status] = (statusCounts[status] || 0) + 1;
       });
 
       const statusLabels = Object.keys(statusCounts);
       const statusValues = Object.values(statusCounts);
+
+      console.log("Status counts:", statusCounts);
+      console.log("Status labels:", statusLabels);
+      console.log("Status values:", statusValues);
 
       setStatusData({
         labels: statusLabels,
@@ -81,33 +71,28 @@ const Dashboard: React.FC = () => {
               "rgba(153, 102, 255, 0.6)",
               "rgba(255, 159, 64, 0.6)",
             ],
-            borderColor: [
-              "rgba(54, 162, 235, 1)",
-              "rgba(75, 192, 192, 1)",
-              "rgba(255, 206, 86, 1)",
-              "rgba(255, 99, 132, 1)",
-              "rgba(153, 102, 255, 1)",
-              "rgba(255, 159, 64, 1)",
-            ],
-            borderWidth: 1,
           },
         ],
       });
 
-      // Condition distribution (just the first condition in each trial)
       const conditionCounts: Record<string, number> = {};
-      trials.forEach((t: Trial) => {
+      trials.forEach((t) => {
         const c = t.condition || "Unknown";
         conditionCounts[c] = (conditionCounts[c] || 0) + 1;
       });
 
-      // Sort by frequency descending to pick top 10
       const sortedConditions = Object.entries(conditionCounts).sort(
         (a, b) => b[1] - a[1]
       );
       const top10 = sortedConditions.slice(0, 10);
       const conditionLabels = top10.map((x) => x[0]);
       const conditionValues = top10.map((x) => x[1]);
+
+      console.log("Condition counts:", conditionCounts);
+      console.log("Sorted conditions:", sortedConditions);
+      console.log("Top 10 conditions:", top10);
+      console.log("Condition labels:", conditionLabels);
+      console.log("Condition values:", conditionValues);
 
       setConditionData({
         labels: conditionLabels,
@@ -134,23 +119,30 @@ const Dashboard: React.FC = () => {
     }
   }, [trials]);
 
+  const isLoading = loading || metaLoading || statsLoading;
+  const isError = error || metaError || statsError;
+
+  console.log("Loading state:", isLoading);
+  console.log("Error state:", isError);
+  console.log("Metadata:", metadata);
+  console.log("Stats:", stats);
+
   return (
     <div className="container mx-auto px-4">
       <h1 className="text-3xl font-bold mb-6 text-center text-primary">
-        Clinical Trials Dashboard
+        Visualization Dashboard
       </h1>
 
-      {loading || metaLoading || statsLoading ? (
+      {isLoading ? (
         <div className="flex justify-center items-center">
           <span className="loading loading-spinner loading-md"></span>
         </div>
-      ) : error || metaError || statsError ? (
+      ) : isError ? (
         <p className="text-red-500 text-center">
           {error || metaError || statsError}
         </p>
       ) : (
         <>
-          {/* Trials by Status Chart */}
           <div className="card bg-base-100 shadow-md p-6 mb-8">
             <h2 className="text-2xl font-semibold mb-4">Trials by Status</h2>
             {statusData ? (
@@ -159,9 +151,7 @@ const Dashboard: React.FC = () => {
                 options={{
                   responsive: true,
                   plugins: {
-                    legend: {
-                      position: "top" as const,
-                    },
+                    legend: { position: "top" },
                     title: {
                       display: true,
                       text: "Number of Trials by Status",
@@ -174,7 +164,6 @@ const Dashboard: React.FC = () => {
             )}
           </div>
 
-          {/* Top Conditions Chart */}
           <div className="card bg-base-100 shadow-md p-6 mb-8">
             <h2 className="text-2xl font-semibold mb-4">Top 10 Conditions</h2>
             {conditionData ? (
@@ -183,9 +172,7 @@ const Dashboard: React.FC = () => {
                 options={{
                   responsive: true,
                   plugins: {
-                    legend: {
-                      position: "right" as const,
-                    },
+                    legend: { position: "right" },
                     title: {
                       display: true,
                       text: "Number of Trials by Condition",
@@ -198,7 +185,6 @@ const Dashboard: React.FC = () => {
             )}
           </div>
 
-          {/* Study Metadata Section */}
           <div className="card bg-base-100 shadow-md p-6 mb-8">
             <h2 className="text-2xl font-semibold mb-4">Study Metadata</h2>
             {Array.isArray(metadata) ? (
@@ -227,7 +213,6 @@ const Dashboard: React.FC = () => {
             )}
           </div>
 
-          {/* Study Statistics Section */}
           <div className="card bg-base-100 shadow-md p-6 mb-8">
             <h2 className="text-2xl font-semibold mb-4">Study Statistics</h2>
             {stats ? (
@@ -258,4 +243,4 @@ const Dashboard: React.FC = () => {
   );
 };
 
-export default Dashboard;
+export default VisualizationDashboard;

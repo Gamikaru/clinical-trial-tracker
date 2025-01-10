@@ -1,35 +1,36 @@
+/**
+ * src/components/Pagination.tsx
+ *
+ * A simple numeric pagination component to demonstrate how you might navigate
+ * through pages of results. Can be replaced with "Load More" or nextPageToken approach.
+ */
+
 import React from "react";
 
-/**
- * Props for the Pagination component.
- */
 interface PaginationProps {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
 }
 
-/**
- * Pagination component allows navigation through multiple pages of data.
- * @param currentPage - Current active page
- * @param totalPages - Total number of pages
- * @param onPageChange - Callback when page is changed
- */
 const Pagination: React.FC<PaginationProps> = ({
   currentPage,
   totalPages,
   onPageChange,
 }) => {
-  // Generate an array of page numbers
+  // Generate an array of page numbers [1...totalPages]
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
 
-  // Handle previous and next button clicks
   const handlePrev = () => {
-    if (currentPage > 1) onPageChange(currentPage - 1);
+    if (currentPage > 1) {
+      onPageChange(currentPage - 1);
+    }
   };
 
   const handleNext = () => {
-    if (currentPage < totalPages) onPageChange(currentPage + 1);
+    if (currentPage < totalPages) {
+      onPageChange(currentPage + 1);
+    }
   };
 
   return (
@@ -41,6 +42,8 @@ const Pagination: React.FC<PaginationProps> = ({
       >
         Previous
       </button>
+
+      {/* Page number buttons */}
       {pages.map((page) => (
         <button
           key={page}
@@ -52,6 +55,7 @@ const Pagination: React.FC<PaginationProps> = ({
           {page}
         </button>
       ))}
+
       <button
         onClick={handleNext}
         className="btn btn-ghost"

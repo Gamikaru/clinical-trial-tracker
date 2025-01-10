@@ -1,37 +1,49 @@
-import { useEffect, useState } from "react";
-import axios from "../services/api";
-
 /**
- * FieldMetadata interface defines the structure of study metadata.
+ * hooks/useTrialMetadata.ts
+ *
+ * Fetches metadata about the study data model from GET /studies/metadata
+ * This endpoint returns an array of field definitions with name, description, type, etc.
+ *
+ * Example shape (simplified):
+ * [
+ *   {
+ *     "name": "protocolSection",
+ *     "description": "ProtocolSection node containing ...",
+ *     "type": "ProtocolSection",
+ *     ...
+ *   },
+ *   ...
+ * ]
  */
-interface FieldMetadata {
+
+import { useEffect, useState } from "react";
+import api from "../services/api";
+
+export interface FieldMetaData {
   name: string;
   description: string;
   type: string;
-  // Add other properties as needed
+  // You can add more fields if needed from the docs
 }
 
-/**
- * useTrialMetadata hook fetches metadata for clinical trials.
- * @returns metadata data, loading state, and error message
- */
 const useTrialMetadata = () => {
-  const [metadata, setMetadata] = useState<FieldMetadata[] | null>(null);
+  const [metadata, setMetadata] = useState<FieldMetaData[] | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchMetadata = async () => {
+  /**
+   * fetchMetadata - calls /studies/metadata
+   */
+  const fetchMetaData = async () => {
     setLoading(true);
     setError(null);
     try {
-      // ...existing code...
-      const response = await axios.get("/studies/metadata");
-      // { changed code: replaced "/metadata-endpoint" with "/studies/metadata" }
-      // ...existing code...
+      // GET /studies/metadata
+      const response = await api.get("/studies/metadata");
       if (Array.isArray(response.data)) {
         setMetadata(response.data);
       } else {
-        throw new Error("Metadata is not an array");
+        throw new Error("Metadata is not an array.");
       }
     } catch (err: any) {
       setError(err.message || "Failed to fetch metadata.");
@@ -42,7 +54,7 @@ const useTrialMetadata = () => {
   };
 
   useEffect(() => {
-    fetchMetadata();
+    fetchMetaData();
   }, []);
 
   return { metadata, loading, error };

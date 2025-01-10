@@ -1,28 +1,67 @@
 import axios from "axios";
 
+// Create the axios instance with a baseURL from your .env or fallback
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "https://clinicaltrials.gov/api/v2",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  paramsSerializer: (params) => {
-    const searchParams = new URLSearchParams();
-    Object.keys(params).forEach((key) => {
-      if (typeof params[key] === "object" && params[key] !== null) {
-        Object.keys(params[key]).forEach((subKey) => {
-          searchParams.append(`${key}.${subKey}`, params[key][subKey]);
-        });
-      } else {
-        searchParams.append(key, params[key]);
-      }
-    });
-    return searchParams.toString();
-  },
-});
+    baseURL: import.meta.env.VITE_API_URL || "https://clinicaltrials.gov/api/v2",
+    headers: {
+        "Content-Type": "application/json",
+    },
 
-export const getStudies = (params: any) => api.get("/studies", { params });
-export const getStudyById = (nctId: string) => api.get(`/studies/${nctId}`);
-export const getMetadata = () => api.get("/studies/metadata");
-export const getStudySizes = () => api.get("/stats/size");
+    // Custom parameter serializer to handle nesting of query.* and filter.* objects,
+    // plus turning `fields` array into a single comma-separated param.
+    paramsSerializer: (params) => {
+        const searchParams = new URLSearchParams();
+
+        console.log("Starting params serialization");
+        console.log("Initial params:", params);
+
+        // Flatten nested objects like { query: { cond: "value" } } and handle arrays properly.
+        Object.keys(params || {}).forEach((key) => {
+            const value = params[key];
+            console.log(`Processing key: ${key}, value:`, value);
+
+            // 1) If `key === "fields"` and `value` is an array => join with commas.
+            //    This solves the 400 error from multiple repeated ?fields= usage.
+            if (key === "fields" && Array.isArray(value)) {
+                // E.g. ["NCTId","BriefTitle"] => "NCTId,BriefTitle"
+                searchParams.append("fields", value.join(","));
+                console.log(`Appended fields: ${value.join(",")}`);
+            }
+
+            // 2) If the value is a nested object, flatten sub-keys, e.g. query.cond
+            else if (
+                typeof value === "object" &&
+                value !== null &&
+                !Array.isArray(value)
+            ) {
+                // Flatten each subKey, e.g. query.cond => ?query.cond=...
+                Object.keys(value).forEach((subKey) => {
+                    searchParams.append(`${key}.${subKey}`, value[subKey]);
+                    console.log(`Appended nested key: ${key}.${subKey}, value: ${value[subKey]}`);
+                });
+            }
+
+            // 3) If it’s an array (but NOT fields), we treat them as repeated params
+            //    e.g. filter.overallStatus=RECRUITING & filter.overallStatus=COMPLETED
+            else if (Array.isArray(value)) {
+                value.forEach((arrVal) => {
+                    searchParams.append(key, arrVal);
+                    console.log(`Appended array key: ${key}, value: ${arrVal}`);
+                });
+            }
+
+            // 4) Otherwise, treat it as a simple param if not undefined/null
+            else if (value !== undefined && value !== null) {
+                searchParams.append(key, value);
+                console.log(`Appended simple key: ${key}, value: ${value}`);
+            }
+        });
+
+        const serializedParams = searchParams.toString();
+        console.log("Serialized params:", serializedParams);
+
+        return serializedParams;
+    },
+});
 
 export default api;

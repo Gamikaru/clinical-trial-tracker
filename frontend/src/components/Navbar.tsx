@@ -1,33 +1,35 @@
+/**
+ * src/components/Navbar.tsx
+ *
+ * A simple top navigation bar linking to the main pages.
+ */
+
 import React from "react";
 import { Link } from "react-router-dom";
 
-/**
- * Navbar component provides navigation links and user authentication controls.
- */
 const Navbar: React.FC = () => {
-//   const { isAuthenticated, logout } = useAuth();
-
   return (
     <nav className="navbar bg-base-200 shadow-md">
-      <div className="container mx-auto px-4 flex justify-between">
+      <div className="container mx-auto px-4 flex justify-between items-center">
+        {/* Logo / Brand Name */}
         <Link to="/" className="text-2xl font-bold text-primary">
           TrialTracker
         </Link>
+
+        {/* Navigation Links */}
         <div className="flex space-x-4">
-          {/* {isAuthenticated ? ( */}
-            <>
-              <Link to="/dashboard" className="btn btn-ghost">
-                Dashboard
-              </Link>
-              {/* <button onClick={logout} className="btn btn-ghost">
-                Logout
-              </button> */}
-            </>
-        {/* //   ) : (
-            // <Link to="/login" className="btn btn-primary">
-            //   Login
-            // </Link>
-          )} */}
+          <Link to="/trials" className="btn btn-ghost">
+            Trials
+          </Link>
+          <Link to="/dashboard" className="btn btn-ghost">
+            Dashboard
+          </Link>
+          <Link to="/participants" className="btn btn-ghost">
+            Participants
+          </Link>
+          <Link to="/saved-trials" className="btn btn-ghost">
+            Saved
+          </Link>
         </div>
       </div>
     </nav>
