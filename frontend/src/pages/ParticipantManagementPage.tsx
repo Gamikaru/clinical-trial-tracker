@@ -1,10 +1,10 @@
 /**
  * src/pages/ParticipantManagementPage.tsx
  *
- * Demonstrates how you might manage participants in your own backend.
- * The official ClinicalTrials.gov API does NOT provide a write endpoint for participant data.
+ * Example form for creating participants. Styled with a subtle motion effect.
  */
 
+import { motion } from "framer-motion";
 import React, { useState } from "react";
 import axios from "../services/api";
 
@@ -17,7 +17,7 @@ const ParticipantManagementPage: React.FC = () => {
     e.preventDefault();
     setMessage(null);
     try {
-      // Example only. Update to your actual backend route if needed.
+      // Example only.
       const response = await axios.post("/api/v2/participants", { name, trialId });
       setMessage("Participant created successfully!");
       console.log("Participant created:", response.data);
@@ -28,13 +28,17 @@ const ParticipantManagementPage: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto px-4">
-      <div className="max-w-md mx-auto card bg-base-100 shadow-md p-6">
+    <motion.div
+      className="container mx-auto px-4"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.8 }}
+    >
+      <div className="max-w-md mx-auto card bg-base-100 shadow-md p-6 mt-10">
         <h2 className="text-xl font-semibold mb-4">Participant Management</h2>
-        {message && <p className="mb-2">{message}</p>}
+        {message && <p className="mb-2 text-gray-600">{message}</p>}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Participant Name */}
           <input
             type="text"
             placeholder="Participant Name"
@@ -44,7 +48,6 @@ const ParticipantManagementPage: React.FC = () => {
             required
           />
 
-          {/* Trial ID */}
           <input
             type="text"
             placeholder="Trial ID (NCTXXXXXXXX)"
@@ -59,7 +62,7 @@ const ParticipantManagementPage: React.FC = () => {
           </button>
         </form>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

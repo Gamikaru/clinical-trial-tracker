@@ -1,3 +1,11 @@
+/**
+ * src/components/StudyStatistics.tsx
+ *
+ * Displays study statistics (count, average size, largest studies).
+ * Includes a slight fade-up effect on load.
+ */
+
+import { motion } from "framer-motion";
 import React from "react";
 import { LargestStudy } from "../types";
 import SummaryCard from "./SummaryCard";
@@ -11,19 +19,18 @@ interface StudyStatisticsProps {
   largestStudies?: LargestStudy[];
 }
 
-/**
- * Displays study statistics including total count, average size, and largest studies.
- *
- * @param {StudyStatisticsProps} props - The properties for the component.
- * @returns {JSX.Element} The rendered study statistics.
- */
 const StudyStatistics: React.FC<StudyStatisticsProps> = ({
   totalCount = 0,
   averageSizeBytes = 0,
   largestStudies = [],
 }) => {
   return (
-    <div className="card bg-base-100 shadow-lg p-6">
+    <motion.div
+      className="card p-6"
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8 }}
+    >
       <h2 className="text-2xl font-semibold mb-4">Study Statistics</h2>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 mb-4">
         <SummaryCard title="Total Studies" value={totalCount} />
@@ -41,7 +48,7 @@ const StudyStatistics: React.FC<StudyStatisticsProps> = ({
           </li>
         ))}
       </ul>
-    </div>
+    </motion.div>
   );
 };
 

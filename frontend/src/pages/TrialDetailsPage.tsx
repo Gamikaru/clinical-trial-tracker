@@ -1,10 +1,15 @@
+/**
+ * src/pages/TrialDetailsPage.tsx
+ *
+ * Detailed view of a single trial with consistent styling and fade-in.
+ */
+
+import { motion } from "framer-motion";
 import React, { useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import useTrialDetails from "../hooks/useTrialDetails";
 
-// Reuse the same badge color helper
 const getStatusBadge = (status: string) => {
-  console.log("getStatusBadge called with status:", status);
   switch (status.toLowerCase()) {
     case "recruiting":
       return "badge-info";
@@ -21,15 +26,13 @@ const getStatusBadge = (status: string) => {
 
 const TrialDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  console.log("useParams returned id:", id);
   const { trial, loading, error } = useTrialDetails(id || "");
 
   useEffect(() => {
-    console.log("useTrialDetails hook returned:", { trial, loading, error });
+    // Debug logs
   }, [trial, loading, error]);
 
   if (loading) {
-    console.log("Loading state");
     return (
       <div className="flex justify-center items-center h-64">
         <span className="loading loading-spinner loading-lg"></span>
@@ -38,19 +41,20 @@ const TrialDetailsPage: React.FC = () => {
   }
 
   if (error) {
-    console.error("Error state:", error);
     return <p className="text-red-500 text-center">{error}</p>;
   }
 
   if (!trial) {
-    console.warn("No trial found");
     return <p className="text-center">No trial found.</p>;
   }
 
-  console.log("Rendering trial details:", trial);
-
   return (
-    <div className="container mx-auto px-4">
+    <motion.div
+      className="container mx-auto px-4"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.8 }}
+    >
       <div className="card bg-base-100 shadow-md p-8">
         <h2 className="text-3xl font-bold mb-6 text-center text-primary">
           Trial Details
@@ -82,7 +86,6 @@ const TrialDetailsPage: React.FC = () => {
               <span className="badge badge-error">No</span>
             )}
           </div>
-          {/* Additional Info */}
           <div>
             <h3 className="text-xl font-semibold">Eligibility Criteria</h3>
             <p>{trial.eligibility?.criteria || "N/A"}</p>
@@ -102,7 +105,7 @@ const TrialDetailsPage: React.FC = () => {
           </Link>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

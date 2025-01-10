@@ -1,46 +1,64 @@
+/**
+ * src/hooks/useTrials.ts
+ *
+ * Updated to include fetchNextPage and resetResults methods.
+ */
+
 import { useEffect, useState } from "react";
 import api from "../services/api";
 
-// Define the Trial interface
+// Extend or reuse your existing Trial interface
 export interface Trial {
     nctId: string;
     briefTitle: string;
     overallStatus: string;
+    orgStudyId?: string;
+    secondaryIds?: string[];
+    startDate?: string;
+    lastUpdatePostDate?: string;
     hasResults: boolean;
     condition?: string;
 }
 
-// Interface for the hook's return value
 interface UseTrialsReturn {
     trials: Trial[];
     loading: boolean;
     error: string | null;
     nextPageToken: string | null;
     refetch: (additionalParams?: any) => void;
+    fetchNextPage: () => void;
+    resetResults: () => void;
 }
 
-/**
- * useTrials - Custom hook for fetching ClinicalTrials.gov studies data.
- *  - Merges your "initialParams" with any subsequent calls to "refetch".
- *  - Transforms the raw study data into a simpler "Trial" interface.
- */
 const useTrials = (initialParams: any): UseTrialsReturn => {
     const [trials, setTrials] = useState<Trial[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [nextPageToken, setNextPageToken] = useState<string | null>(null);
 
+    // Merge user-provided params with defaults
     const [params, setParams] = useState<any>({
+        format: "json",
+        pageSize: initialParams?.pageSize ?? 50,
+        fields:
+            "NCTId," +
+            "protocolSection.identificationModule.orgStudyIdInfo.id," +
+            "protocolSection.identificationModule.secondaryIdInfos.id," +
+            "protocolSection.identificationModule.briefTitle," +
+            "protocolSection.statusModule.overallStatus," +
+            "protocolSection.statusModule.startDateStruct.date," +
+            "protocolSection.statusModule.lastUpdatePostDateStruct.date," +
+            "protocolSection.conditionsModule," +
+            "HasResults",
         ...initialParams,
-        // Increase the page size by default to fetch more trials for better chart data
-        pageSize: initialParams?.pageSize ?? 100,
     });
 
     /**
-     * Allows dynamic updates to the search parameters from outside.
-     * Merges new params with existing ones and triggers a refetch.
+     * refetch: let external code override or update params.
      */
     const refetch = (additionalParams?: any) => {
+        setTrials([]);
+        setNextPageToken(null);
         setParams((prev: any) => ({
             ...prev,
             ...additionalParams,
@@ -48,53 +66,48 @@ const useTrials = (initialParams: any): UseTrialsReturn => {
     };
 
     /**
-     * Fetch trials from GET /studies.
-     * Transforms them into an array of `Trial` objects with
-     * a fallback for condition if none is provided.
+     * fetchTrials: call /studies
      */
-    const fetchTrials = async () => {
+    const fetchTrials = async (extraParams?: any) => {
         setLoading(true);
         setError(null);
-        console.debug("Fetching trials with params:", params);
-
         try {
-            const response = await api.get("/studies", { params });
+            const finalParams = { ...params, ...extraParams };
+            console.debug("useTrials: calling GET /studies with params:", finalParams);
+            const response = await api.get("/studies", { params: finalParams });
             const data = response.data;
-            console.debug("API response (trials):", data);
 
             if (data && Array.isArray(data.studies)) {
                 const transformed = data.studies.map((study: any) => {
-                    const nctId =
-                        study?.protocolSection?.identificationModule?.nctId || "";
-                    const briefTitle =
-                        study?.protocolSection?.identificationModule?.briefTitle || "";
-                    const overallStatus =
-                        study?.protocolSection?.statusModule?.overallStatus || "UNKNOWN";
+                    const nctId = study?.protocolSection?.identificationModule?.nctId || "";
+                    const orgStudyId = study?.protocolSection?.identificationModule?.orgStudyIdInfo?.id || "";
+                    const secIdInfos = study?.protocolSection?.identificationModule?.secondaryIdInfos || [];
+                    const secondaryIds = secIdInfos.map((sec: any) => sec?.id || "");
+                    const briefTitle = study?.protocolSection?.identificationModule?.briefTitle || "";
+                    const overallStatus = study?.protocolSection?.statusModule?.overallStatus || "UNKNOWN";
+                    const startDate = study?.protocolSection?.statusModule?.startDateStruct?.date || null;
+                    const lastUpdatePostDate = study?.protocolSection?.statusModule?.lastUpdatePostDateStruct?.date || null;
+                    const conditionList = study?.protocolSection?.conditionsModule?.conditions || [];
+                    const condition = conditionList[0] || "No Condition Info";
                     const hasResults = study?.hasResults || false;
-
-                    // Pull first condition from conditionList. Fallback to "No Condition Info" if empty.
-                    const conditionList =
-                        study?.protocolSection?.conditionsModule?.conditionList || [];
-                    const firstCondition = conditionList[0] || "";
-                    const condition = firstCondition.trim()
-                        ? firstCondition
-                        : "No Condition Info";
 
                     return {
                         nctId,
+                        orgStudyId,
+                        secondaryIds,
                         briefTitle,
                         overallStatus,
+                        startDate,
+                        lastUpdatePostDate,
                         hasResults,
                         condition,
                     };
                 });
 
-                setTrials(transformed);
+                setTrials((prev) => [...prev, ...transformed]);
                 setNextPageToken(data.nextPageToken || null);
-
-                console.debug("Transformed trials array:", transformed);
             } else {
-                throw new Error("Studies data is not an array or is missing.");
+                throw new Error("Data did not contain a valid 'studies' array.");
             }
         } catch (err: any) {
             if (err.response) {
@@ -111,14 +124,28 @@ const useTrials = (initialParams: any): UseTrialsReturn => {
     };
 
     /**
-     * Refetch trials whenever `params` changes.
+     * fetchNextPage - load the next page of trials
      */
+    const fetchNextPage = () => {
+        if (nextPageToken) {
+            fetchTrials({ pageToken: nextPageToken });
+        }
+    };
+
+    /**
+     * resetResults - clears existing trials and nextPageToken
+     */
+    const resetResults = () => {
+        setTrials([]);
+        setNextPageToken(null);
+    };
+
     useEffect(() => {
         fetchTrials();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [JSON.stringify(params)]);
 
-    return { trials, loading, error, nextPageToken, refetch };
+    return { trials, loading, error, nextPageToken, refetch, fetchNextPage, resetResults };
 };
 
 export default useTrials;

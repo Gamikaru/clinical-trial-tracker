@@ -20,9 +20,28 @@ const api = axios.create({
             const value = params[key];
             console.log(`Processing key: ${key}, value:`, value);
 
+            // Handle location parameter
+            if (key === "location" && value?.latitude && value?.longitude && value?.radius) {
+                // Turn "location" into filter.geo => "distance(latitude, longitude, radius)"
+                const { latitude, longitude, radius } = value;
+                const geoParam = `distance(${latitude},${longitude},${radius})`;
+                searchParams.append("filter.geo", geoParam);
+                console.log(`Appended geo filter: ${geoParam}`);
+            }
+
+            // Handle status parameter
+            else if (key === "status" && Array.isArray(value)) {
+                // Turn statuses array into repeated filter.overallStatus
+                // e.g. filter.overallStatus=RECRUITING&filter.overallStatus=COMPLETED
+                value.forEach((stat) => {
+                    searchParams.append("filter.overallStatus", stat);
+                    console.log(`Appended status filter: ${stat}`);
+                });
+            }
+
             // 1) If `key === "fields"` and `value` is an array => join with commas.
             //    This solves the 400 error from multiple repeated ?fields= usage.
-            if (key === "fields" && Array.isArray(value)) {
+            else if (key === "fields" && Array.isArray(value)) {
                 // E.g. ["NCTId","BriefTitle"] => "NCTId,BriefTitle"
                 searchParams.append("fields", value.join(","));
                 console.log(`Appended fields: ${value.join(",")}`);

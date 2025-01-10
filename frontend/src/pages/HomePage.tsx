@@ -1,24 +1,30 @@
 /**
  * src/pages/HomePage.tsx
  *
- * The app’s landing page. Provides an introduction and quick navigation.
+ * The landing page with improved styling and a welcoming motion.
  */
 
+import { motion } from "framer-motion";
 import React from "react";
 import { Link } from "react-router-dom";
 
 const HomePage: React.FC = () => {
   return (
-    <div className="container mx-auto px-4 mt-10">
+    <motion.div
+      className="container mx-auto px-4 mt-10"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.8 }}
+    >
       <div className="card bg-base-100 shadow-md p-6 text-center">
-        <h1 className="text-3xl font-bold mb-4 text-primary">
-          Welcome to TrialTracker
+        <h1 className="text-4xl font-extrabold mb-4 text-neutral">
+          Welcome to <span className="text-primary">TrialTracker</span>
         </h1>
-        <p className="mb-6">
+        <p className="mb-6 text-lg text-gray-600">
           Explore clinical trial data, visualize insights, manage participants,
           and save your favorite trials.
         </p>
-        <div className="space-x-4">
+        <div className="flex flex-col sm:flex-row justify-center gap-4">
           <Link to="/trials" className="btn btn-primary">
             View Trials
           </Link>
@@ -27,7 +33,7 @@ const HomePage: React.FC = () => {
           </Link>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

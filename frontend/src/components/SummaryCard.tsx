@@ -1,26 +1,31 @@
+/**
+ * src/components/SummaryCard.tsx
+ *
+ * A reusable card for displaying summary info with a subtle hover effect.
+ */
+
+import { motion } from "framer-motion";
 import React from "react";
 
 interface SummaryCardProps {
-  /** The title of the summary card */
   title: string;
-  /** The value displayed in the summary card */
   value: string | number;
 }
 
-/**
- * A reusable card component to display summary information.
- *
- * @param {SummaryCardProps} props - The properties for the component.
- * @returns {JSX.Element} The rendered summary card.
- */
 const SummaryCard: React.FC<SummaryCardProps> = ({ title, value }) => {
   return (
-    <div className="card bg-base-100 shadow-lg p-6 flex flex-col items-center">
+    <motion.div
+      className="card bg-base-100 p-6 flex flex-col items-center hover:shadow-xl transition-shadow"
+      whileHover={{ scale: 1.02 }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+    >
       <h2 className="text-xl font-semibold mb-2">{title}</h2>
       <p className="text-3xl font-bold">
         {typeof value === "number" ? value.toLocaleString() : value}
       </p>
-    </div>
+    </motion.div>
   );
 };
 

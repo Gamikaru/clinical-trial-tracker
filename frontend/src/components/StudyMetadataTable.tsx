@@ -1,25 +1,27 @@
+/**
+ * src/components/StudyMetadataTable.tsx
+ *
+ * Displays a table of study metadata, grouped by their respective sections,
+ * with improved styling and slight fade-in effect.
+ */
+
+import { motion } from "framer-motion";
 import React from "react";
-import { MetadataField } from "../types"; // Corrected import
-import MetadataFields from "./MetadataFields"; // Corrected import
+import { MetadataField } from "../types";
+import MetadataFields from "./MetadataFields";
 
 interface StudyMetadataTableProps {
   /** Array of metadata fields to display */
-  metadata: MetadataField[]; // Corrected type
+  metadata: MetadataField[];
 }
 
-/**
- * Displays a table of study metadata, grouped by their respective sections.
- *
- * @param {StudyMetadataTableProps} props - The properties for the component.
- * @returns {JSX.Element} The rendered metadata table.
- */
 const StudyMetadataTable: React.FC<StudyMetadataTableProps> = ({
   metadata,
 }) => {
   // Group metadata by sections (e.g., protocolSection, resultsSection)
   const groupedMetadata = metadata.reduce(
     (groups: Record<string, MetadataField[]>, field) => {
-      const section = field.name.split(".")[0]; // Assumes naming like 'protocolSection.identificationModule.nctId'
+      const section = field.name.split(".")[0];
       if (!groups[section]) {
         groups[section] = [];
       }
@@ -30,7 +32,12 @@ const StudyMetadataTable: React.FC<StudyMetadataTableProps> = ({
   );
 
   return (
-    <div className="card bg-base-100 shadow-lg p-6 col-span-1 lg:col-span-2">
+    <motion.div
+      className="card col-span-1 lg:col-span-2"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.8 }}
+    >
       <h2 className="text-2xl font-semibold mb-4">Study Metadata</h2>
       {Array.isArray(metadata) && metadata.length > 0 ? (
         <div className="overflow-x-auto">
@@ -54,7 +61,7 @@ const StudyMetadataTable: React.FC<StudyMetadataTableProps> = ({
                 </thead>
                 <tbody>
                   {groupedMetadata[section].map((field) => (
-                    <MetadataFields key={field.name} field={field} /> // Corrected component name
+                    <MetadataFields key={field.name} field={field} />
                   ))}
                 </tbody>
               </table>
@@ -64,7 +71,7 @@ const StudyMetadataTable: React.FC<StudyMetadataTableProps> = ({
       ) : (
         <p>No metadata available.</p>
       )}
-    </div>
+    </motion.div>
   );
 };
 

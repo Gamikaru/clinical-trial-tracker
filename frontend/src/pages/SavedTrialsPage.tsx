@@ -1,9 +1,10 @@
 /**
  * src/pages/SavedTrialsPage.tsx
  *
- * Demonstrates a simple saved trials list. Data can be stored in localStorage or a backend DB.
+ * Displays the saved trials from localStorage with updated styling.
  */
 
+import { motion } from "framer-motion";
 import React, { useEffect, useState } from "react";
 
 interface SavedTrial {
@@ -15,7 +16,6 @@ interface SavedTrial {
 const SavedTrialsPage: React.FC = () => {
   const [savedTrials, setSavedTrials] = useState<SavedTrial[]>([]);
 
-  // Example: fetch from localStorage on mount
   useEffect(() => {
     const stored = localStorage.getItem("savedTrials");
     if (stored) {
@@ -30,7 +30,12 @@ const SavedTrialsPage: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto px-4">
+    <motion.div
+      className="container mx-auto px-4"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.8 }}
+    >
       <div className="card bg-base-100 shadow-md p-6">
         <h1 className="text-3xl font-bold mb-6 text-center text-primary">
           Saved Trials
@@ -69,7 +74,7 @@ const SavedTrialsPage: React.FC = () => {
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 };
 
