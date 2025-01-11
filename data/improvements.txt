@@ -1,0 +1,2433 @@
+Comprehensive Options for Enhancing Data Filtering, Sorting, Transformation, and Manipulation
+To optimize your backend for processing clinical trial data effectively, consider implementing the following enhancements. These options aim to provide more robust data manipulation capabilities, ensuring the frontend receives clean, insightful, and actionable data.
+
+1. Advanced Filtering Mechanisms
+a. Multi-Condition Filtering
+
+Description: Allow filtering studies based on multiple conditions simultaneously (e.g., cancer, diabetes).
+
+Implementation:
+
+b. Geospatial Filtering with Bounding Boxes
+
+Description: Enable filtering studies within specific geographical bounding boxes.
+
+Implementation:
+
+2. Enhanced Sorting Capabilities
+a. Sorting by Multiple Fields
+
+Description: Allow sorting studies based on multiple fields such as enrollment size, start date, and last update.
+
+Implementation:
+
+3. Data Transformation and Enrichment
+a. Calculating Enrollment Rates
+
+Description: Compute enrollment rates or other derived metrics to provide deeper insights.
+
+Implementation:
+
+b. Aggregating Conditions and Treatments
+
+Description: Group studies by conditions or treatments to identify prevalent areas of research.
+
+Implementation:
+
+4. Advanced Aggregations and Statistics
+a. Temporal Analysis of Studies
+
+Description: Analyze trends over time, such as the number of studies initiated each year.
+
+Implementation:
+
+b. Geographical Distribution Analysis
+
+Description: Determine the distribution of studies across different countries or regions.
+
+Implementation:
+
+5. Optimized Caching Strategies
+a. Dynamic Cache Expiration
+
+Description: Adjust cache expiration based on data volatility or request frequency.
+
+Implementation:
+
+b. Cache Invalidation on Data Update
+
+Description: Invalidate or refresh cache entries when underlying data changes.
+Implementation: Implement hooks or listeners that trigger cache invalidation based on specific events or time thresholds.
+6. Enhanced Error Handling and Logging
+a. Detailed Error Responses
+
+Description: Provide more informative error messages to facilitate debugging and improve frontend handling.
+
+Implementation:
+
+b. Structured Logging with Contextual Information
+
+Description: Enhance logs with additional context such as request parameters, user identifiers, and timestamps.
+
+Implementation:
+
+7. Data Validation and Integrity Checks
+a. Implementing Pydantic Models for Response Validation
+
+Description: Ensure that the transformed data adheres to defined schemas, enhancing data integrity.
+
+Implementation:
+
+8. Implementing Pagination and Rate-Limiting Enhancements
+a. Cursor-Based Pagination
+
+Description: Improve pagination by implementing cursor-based mechanisms for more efficient data retrieval.
+
+Implementation:
+
+b. Dynamic Rate-Limiting Based on Usage Patterns
+
+Description: Adjust rate limits dynamically based on client usage patterns to optimize resource allocation.
+Implementation: Implement adaptive rate-limiting algorithms that monitor request frequencies and adjust thresholds accordingly.
+9. Integrating Machine Learning for Predictive Insights
+a. Predicting Study Success Rates
+
+Description: Use historical data to predict the likelihood of study completion or success.
+
+Implementation:
+
+b. Clustering Studies Based on Characteristics
+
+Description: Group studies into clusters to identify patterns or similarities.
+
+Implementation:
+
+10. Enhancing API Documentation and Discoverability
+a. Automatic API Documentation with Swagger
+
+Description: Utilize FastAPI's built-in Swagger UI to provide interactive API documentation.
+Implementation: Ensure all endpoints have descriptive docstrings and Pydantic models for seamless documentation generation.
+b. Providing Example Queries and Responses
+
+Description: Include example requests and responses in the API documentation to aid frontend developers.
+Implementation: Use Pydantic's example parameter in models and provide examples in endpoint docstrings.
+Summary
+By implementing these enhancements, your backend will offer more sophisticated data manipulation capabilities, ensuring that the frontend receives well-structured, insightful, and actionable data. These improvements not only optimize data processing but also enhance the overall reliability and scalability of your application, making it highly valuable for a clinical trial data company like Vail Bioengineering.
+
+
+
+
+
+```
+
+
+ClinicalTrials.gov API
+On this page
+Introduction
+ClinicalTrials.gov REST API
+Resources
+Notice to API users:
+The classic ClinicalTrials.gov API is no longer available. To learn more about the new API:
+Read the Migration Guide for information about migrating to the legacy endpoint replacements.
+See the updated Modernization Transition Top Questions.
+Contact us at register@clinicaltrials.gov with any additional questions.
+Introduction
+The CTG API specification is available in YAML format and can be used with a variety of tools and other software frameworks to generate client code for interacting with the REST API in a way that is specific for the target language or environment.
+
+The OpenAPI 3.0 Specification is an open-source format for describing and documenting HTTP APIs. An OpenAPI 3.0 specification serves as the core definition for the API of the ClinicalTrials.gov website.
+
+Schedule of data updates
+Data on ClinicalTrials.gov is refreshed daily Monday through Friday, generally by 9 a.m. ET (14:00 UTC). However, to ensure your API requests gather the most recent data, please check the “dataTimestamp” field available at https://clinicaltrials.gov/api/v2/version to ensure the refresh has completed.
+
+ClinicalTrials.gov REST API 2.0.3
+This API is made available to provide users meta data, statistics, and the most recent version of the clinical trials available on ClinicalTrials.gov.
+
+Expand all
+ |
+Collapse all
+  sections
+Studies
+Related to clinical trial studies
+
+get
+/studies
+Studies
+Studies
+Returns data of studies matching query and filter parameters. The studies are returned page by page. If response contains nextPageToken, use its value in pageToken to get next page. The last page will not contain nextPageToken. A page may have empty studies array. Request for each subsequent page must have the same parameters as for the first page, except countTotal, pageSize, and pageToken parameters.
+
+If neither queries nor filters are set, all studies will be returned. If any query parameter contains only NCT IDs (comma- and/or space-separated), filters are ignored.
+
+query.* parameters are in Essie expression syntax. Those parameters affect ranking of studies, if sorted by relevance. See sort parameter for details.
+
+filter.* and postFilter.* parameters have same effect as there is no aggregation calculation. Both are available just to simplify applying parameters from search request. Both do not affect ranking of studies.
+
+Note: When trying JSON format in your browser, do not set too large pageSize parameter, if fields is unlimited. That may return too much data for the browser to parse and render.
+
+REQUEST
+QUERY-STRING PARAMETERS
+format
+enum
+Default: json
+Allowed: csv ┃ json
+Must be one of the following:
+
+csv- return CSV table with one page of study data; first page will contain header with column names; available fields are listed on CSV Download page
+json- return JSON with one page of study data; every study object is placed in a separate line; markup type fields format depends on markupFormat parameter
+markupFormat
+enum
+Default: markdown
+Allowed: markdown ┃ legacy
+Format of markup type fields:
+
+markdown- markdown format
+legacy- compatible with classic PRS
+Applicable only to json format.
+
+query.cond
+string
+"Conditions or disease" query in Essie expression syntax. See "ConditionSearch Area" on Search Areas for more details.
+
+Examples: lung cancer ┃ (head OR neck) AND pain
+query.term
+string
+"Other terms" query in Essie expression syntax. See "BasicSearch Area" on Search Areas for more details.
+
+Examples: AREA[LastUpdatePostDate]RANGE[2023-01-15,MAX]
+query.locn
+string
+"Location terms" query in Essie expression syntax. See "LocationSearch Area" on Search Areas for more details.
+
+query.titles
+string
+"Title / acronym" query in Essie expression syntax. See "TitleSearch Area" on Search Areas for more details.
+
+query.intr
+string
+"Intervention / treatment" query in Essie expression syntax. See "InterventionSearch Area" on Search Areas for more details.
+
+query.outc
+string
+"Outcome measure" query in Essie expression syntax. See "OutcomeSearch Area" on Search Areas for more details.
+
+query.spons
+string
+"Sponsor / collaborator" query in Essie expression syntax. See "SponsorSearch Area" on Search Areas for more details.
+
+query.lead
+string
+Searches in "LeadSponsorName" field. See Study Data Structure for more details. The query is in Essie expression syntax.
+
+query.id
+string
+"Study IDs" query in Essie expression syntax. See "IdSearch Area" on Search Areas for more details.
+
+query.patient
+string
+See "PatientSearch Area" on Search Areas for more details.
+
+filter.overallStatus
+array of string
+add-multiple ↩
+Allowed: ACTIVE_NOT_RECRUITING ┃ COMPLETED ┃ ENROLLING_BY_INVITATION ┃ NOT_YET_RECRUITING ┃ RECRUITING ┃ SUSPENDED ┃ TERMINATED ┃ WITHDRAWN ┃ AVAILABLE ┃ NO_LONGER_AVAILABLE ┃ TEMPORARILY_NOT_AVAILABLE ┃ APPROVED_FOR_MARKETING ┃ WITHHELD ┃ UNKNOWN
+Filter by comma- or pipe-separated list of statuses
+
+Examples: [ NOT_YET_RECRUITING, RECRUITING ] ┃ [ COMPLETED ]
+filter.geo
+string
+Pattern: ^distance\(-?\d+(\.\d+)?,-?\d+(\.\d+)?,\d+(\.\d+)?(km|mi)?\)$
+Filter by geo-function. Currently only distance function is supported. Format: distance(latitude,longitude,distance)
+
+Examples: distance(39.0035707,-77.1013313,50mi)
+filter.ids
+array of string
+add-multiple ↩
+Filter by comma- or pipe-separated list of NCT IDs (a.k.a. ClinicalTrials.gov identifiers). The provided IDs will be searched in NCTId and NCTIdAlias fields.
+
+Examples: [ NCT04852770, NCT01728545, NCT02109302 ]
+filter.advanced
+string
+Filter by query in Essie expression syntax
+
+Examples: AREA[StartDate]2022 ┃ AREA[MinimumAge]RANGE[MIN, 16 years] AND AREA[MaximumAge]RANGE[16 years, MAX]
+filter.synonyms
+array of string
+add-multiple ↩
+Filter by comma- or pipe-separated list of area:synonym_id pairs
+
+Examples: [ ConditionSearch:1651367, BasicSearch:2013558 ]
+postFilter.overallStatus
+array of string
+add-multiple ↩
+Allowed: ACTIVE_NOT_RECRUITING ┃ COMPLETED ┃ ENROLLING_BY_INVITATION ┃ NOT_YET_RECRUITING ┃ RECRUITING ┃ SUSPENDED ┃ TERMINATED ┃ WITHDRAWN ┃ AVAILABLE ┃ NO_LONGER_AVAILABLE ┃ TEMPORARILY_NOT_AVAILABLE ┃ APPROVED_FOR_MARKETING ┃ WITHHELD ┃ UNKNOWN
+Filter by comma- or pipe-separated list of statuses
+
+Examples: [ NOT_YET_RECRUITING, RECRUITING ] ┃ [ COMPLETED ]
+postFilter.geo
+string
+Pattern: ^distance\(-?\d+(\.\d+)?,-?\d+(\.\d+)?,\d+(\.\d+)?(km|mi)?\)$
+Filter by geo-function. Currently only distance function is supported. Format: distance(latitude,longitude,distance)
+
+Examples: distance(39.0035707,-77.1013313,50mi)
+postFilter.ids
+array of string
+add-multiple ↩
+Filter by comma- or pipe-separated list of NCT IDs (a.k.a. ClinicalTrials.gov identifiers). The provided IDs will be searched in NCTId and NCTIdAlias fields.
+
+Examples: [ NCT04852770, NCT01728545, NCT02109302 ]
+postFilter.advanced
+string
+Filter by query in Essie expression syntax
+
+Examples: AREA[StartDate]2022 ┃ AREA[MinimumAge]RANGE[MIN, 16 years] AND AREA[MaximumAge]RANGE[16 years, MAX]
+postFilter.synonyms
+array of string
+add-multiple ↩
+Filter by comma- or pipe-separated list of area:synonym_id pairs
+
+Examples: [ ConditionSearch:1651367, BasicSearch:2013558 ]
+aggFilters
+string
+Apply aggregation filters, aggregation counts will not be provided. The value is comma- or pipe-separated list of pairs filter_id:space-separated list of option keys for the checked options.
+
+Examples: results:with,status:com ┃ status:not rec,sex:f,healthy:y
+geoDecay
+string
+Default: func:exp,scale:300mi,offset:0mi,decay:0.5
+Pattern: ^func:(gauss|exp|linear),scale:(\d+(\.\d+)?(km|mi)),offset:(\d+(\.\d+)?(km|mi)),decay:(\d+(\.\d+)?)$
+Set proximity factor by distance from filter.geo location to the closest LocationGeoPoint of a study. Ignored, if filter.geo parameter is not set or response contains more than 10,000 studies.
+
+Examples: func:linear,scale:100km,offset:10km,decay:0.1 ┃ func:gauss,scale:500mi,offset:0mi,decay:0.3
+fields
+array of string
+add-multiple ↩
+Min 1 item
+If specified, must be non-empty comma- or pipe-separated list of fields to return. If unspecified, all fields will be returned. Order of the fields does not matter.
+
+For csv format, specify list of columns. The column names are available on CSV Download.
+
+For json format, every list item is either area name, piece name, field name, or special name. If a piece or a field is a branch node, all descendant fields will be included. All area names are available on Search Areas, the piece and field names — on Data Structure and also can be retrieved at /studies/metadata endpoint. There is a special name, @query, which expands to all fields queried by search.
+
+Examples: [ NCTId, BriefTitle, OverallStatus, HasResults ] ┃ [ ProtocolSection ]
+sort
+array of string
+add-multiple ↩
+Max 2 items
+Comma- or pipe-separated list of sorting options of the studies. The returning studies are not sorted by default for a performance reason. Every list item contains a field/piece name and an optional sort direction (asc for ascending or desc for descending) after colon character.
+
+All piece and field names can be found on Data Structure and also can be retrieved at /studies/metadata endpoint. Currently, only date and numeric fields are allowed for sorting. There is a special "field" @relevance to sort by relevance to a search query.
+
+Studies missing sort field are always last. Default sort direction:
+
+Date field - desc
+Numeric field - asc
+@relevance - desc
+Examples: [ @relevance ] ┃ [ LastUpdatePostDate ] ┃ [ EnrollmentCount:desc, NumArmGroups ]
+countTotal
+boolean
+Default: false
+Count total number of studies in all pages and return totalCount field with first page, if true. For CSV, the result can be found in x-total-count response header. The parameter is ignored for the subsequent pages.
+
+pageSize
+int32
+Default: 10
+Min 0
+Page size is maximum number of studies to return in response. It does not have to be the same for every page. If not specified or set to 0, the default value will be used. It will be coerced down to 1,000, if greater than that.
+
+Examples: 2 ┃ 100
+pageToken
+string
+Token to get next page. Set it to a nextPageToken value returned with the previous page in JSON format. For CSV, it can be found in x-next-page-token response header. Do not specify it for first page.
+
+API Server
+https://clinicaltrials.gov/api/v2
+Authentication
+Not Required
+RESPONSE
+OK
+
+EXAMPLE
+SCHEMA
+application/json
+Copy
+{
+"totalCount": 438897,
+"studies": [
+{
+"protocolSection": {
+"identificationModule": {
+"nctId": "NCT03540771",
+"briefTitle": "Introducing Palliative Care (PC) Within the Treatment of End Stage Liver Disease (ESLD)"
+},
+"statusModule": {
+"overallStatus": "RECRUITING"
+}
+},
+"hasResults": false
+},
+{
+"protocolSection": {
+"identificationModule": {
+"nctId": "NCT03630471",
+"briefTitle": "Effectiveness of a Problem-solving Intervention for Common Adolescent Mental Health Problems in India"
+},
+"statusModule": {
+"overallStatus": "COMPLETED"
+}
+},
+"hasResults": false
+},
+{
+"protocolSection": {
+"identificationModule": {
+"nctId": "NCT00587795",
+"briefTitle": "Orthopedic Study of the Aircast StabilAir Wrist Fracture Brace"
+},
+"statusModule": {
+"overallStatus": "TERMINATED"
+}
+},
+"hasResults": true
+}
+],
+"nextPageToken": "abracadabra"
+}
+get
+/studies/{nctId}
+Single Study
+Single Study
+Returns data of a single study.
+
+REQUEST
+PATH PARAMETERS
+* nctId
+string
+Pattern: ^[Nn][Cc][Tt]0*[1-9]\d{0,7}$
+NCT Number of a study. If found in NCTIdAlias field, 301 HTTP redirect to the actual study will be returned.
+
+Examples: NCT00841061 ┃ NCT04000165
+QUERY-STRING PARAMETERS
+format
+enum
+Default: json
+Allowed: csv ┃ json ┃ json.zip ┃ fhir.json ┃ ris
+Must be one of the following:
+
+csv- return CSV table; available fields are listed on CSV Download
+json- return JSON object; format of markup fields depends on markupFormat parameter
+json.zip- put JSON object into a .json file and download it as zip archive; field values of type markup are in markdown format
+fhir.json - return FHIR JSON; fields are not customizable; see Access Data in FHIR
+ris- return RIS record; available tags are listed on RIS Download
+markupFormat
+enum
+Default: markdown
+Allowed: markdown ┃ legacy
+Format of markup type fields:
+
+markdown- markdown format
+legacy- compatible with classic PRS
+Applicable only to json format.
+
+fields
+array of string
+add-multiple ↩
+Min 1 item
+If specified, must be non-empty comma- or pipe-separated list of fields to return. If unspecified, all fields will be returned. Order of the fields does not matter.
+
+For csv format, specify list of columns. The column names are available on CSV Download.
+
+For json and json.zip formats, every list item is either area name, piece name, or field name. If a piece or a field is a branch node, all descendant fields will be included. All area names are available on Search Areas, the piece and field names - on Data Structure and also can be retrieved at /studies/metadata endpoint.
+
+For fhir.json format, all available fields are returned and this parameter must be unspecified.
+
+For ris format, specify list of tags. The tag names are available on RIS Download.
+
+Examples: [ NCTId, BriefTitle, Reference ] ┃ [ ConditionsModule, EligibilityModule ]
+API Server
+https://clinicaltrials.gov/api/v2
+Authentication
+Not Required
+RESPONSE
+OK
+
+EXAMPLE
+SCHEMA
+
+text/csv
+"string"
+get
+/studies/metadata
+Data Model Fields
+Data Model Fields
+Returns study data model fields.
+
+REQUEST
+QUERY-STRING PARAMETERS
+includeIndexedOnly
+boolean
+Default: false
+Include indexed-only fields, if true
+
+includeHistoricOnly
+boolean
+Default: false
+Include fields available only in historic data, if true
+
+API Server
+https://clinicaltrials.gov/api/v2
+Authentication
+Not Required
+RESPONSE
+OK
+
+EXAMPLE
+SCHEMA
+application/json
+Copy
+[
+{
+"altPieceNames": [
+"string"
+],
+"children": [
+"/api/oas/v2#/components/schemas/FieldNode"
+],
+"dedLink": {
+"label": "string",
+"url": "string"
+},
+"description": "string",
+"historicOnly": false,
+"indexedOnly": false,
+"isEnum": false,
+"maxChars": 0,
+"name": "string",
+"nested": false,
+"piece": "string",
+"rules": "string",
+"sourceType": "string",
+"synonyms": false,
+"title": "string",
+"type": "string"
+}
+]
+get
+/studies/search-areas
+Search Areas
+Search Areas
+Search Docs and their Search Areas.
+
+REQUEST
+API Server
+https://clinicaltrials.gov/api/v2
+Authentication
+Not Required
+RESPONSE
+OK
+
+EXAMPLE
+SCHEMA
+application/json
+Copy
+[
+{
+"areas": [
+{
+"name": "string",
+"param": "string",
+"parts": [
+{
+"isEnum": false,
+"isSynonyms": false,
+"pieces": [
+"string"
+],
+"type": "string",
+"weight": 0
+}
+],
+"uiLabel": "string"
+}
+],
+"name": "string"
+}
+]
+get
+/studies/enums
+Enums
+Enums
+Returns enumeration types and their values.
+
+Every item of the returning array represents enum type and contains the following properties:
+
+type - enum type name
+pieces - array of names of all data pieces having the enum type
+values - all available values of the enum; every item contains the following properties:
+value - data value
+legacyValue - data value in legacy API
+exceptions - map from data piece name to legacy value when different from legacyValue (some data pieces had special enum values in legacy API)
+REQUEST
+API Server
+https://clinicaltrials.gov/api/v2
+Authentication
+Not Required
+RESPONSE
+OK
+
+EXAMPLE
+SCHEMA
+application/json
+Copy
+[
+{
+"pieces": [
+"string"
+],
+"type": "string",
+"values": [
+{
+"exceptions": { },
+"legacyValue": "string",
+"value": "string"
+}
+]
+}
+]
+Stats
+Data statistics
+
+get
+/stats/size
+Study Sizes
+get
+/stats/field/values
+Field Values
+get
+/stats/field/sizes
+List Field Sizes
+
+
+```
+```
+```
+please lookat my priject structure and code and and the api docs and explain any errors or issue that need resolving.
+
+.
+├── Dockerfile
+├── README.md
+├── __init__.py
+├── docker-compose.yml
+├── improvements.txt
+├── logger_config.py
+├── main.py
+├── requirements.txt
+├── services
+│   ├── __init__.py
+│   ├── analysis
+│   │   ├── __init__.py
+│   │   └── enrollment_analysis.py
+│   ├── api
+│   │   ├── __init__.py
+│   │   ├── advanced.py
+│   │   ├── filtered_studies.py
+│   │   └── routers
+│   │       ├── __init__.py
+│   │       ├── enriched_studies.py
+│   │       ├── enrollment_insights.py
+│   │       ├── enums.py
+│   │       ├── filtered_studies.py
+│   │       ├── geo_stats.py
+│   │       ├── participant_flow.py
+│   │       ├── search_areas.py
+│   │       ├── sorted_studies.py
+│   │       ├── stats_field_values.py
+│   │       ├── stats_size.py
+│   │       ├── studies.py
+│   │       └── time_stats.py
+│   ├── api_clients
+│   │   ├── __init__.py
+│   │   └── clinical_trials_client.py
+│   ├── data_processing
+│   │   ├── __init__.py
+│   │   ├── data_cleaning.py
+│   │   └── participant_flow.py
+│   ├── models.py
+│   ├── service.py
+│   └── utils
+│       ├── __init__.py
+│       ├── error_handling.py
+│       └── rate_limiting.py
+├── stderr
+└── tests
+    ├── __init__.py
+    ├── conftest.py
+    ├── test_advanced_filters.py
+    ├── test_api.py
+    ├── test_data_transformation.py
+    ├── test_service.py
+    └── test_sorting.py
+
+my code:
+
+# data.services.analysis.enrollment_analysis
+from typing import List, Dict, Any
+from datetime import datetime
+from loguru import logger
+import pandas as pd
+
+@logger.catch
+def analyze_enrollment_data(cleaned_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Analyzes enrollment data to provide statistics.
+
+    Args:
+        cleaned_data (List[Dict[str, Any]]): List of cleaned study data.
+
+    Returns:
+        Dict[str, Any]: Enrollment statistics including average, total, and distribution.
+    """
+    logger.debug("Starting enrollment data analysis.")
+    df = pd.DataFrame(cleaned_data)
+    enrollment_stats = {
+        "average_enrollment": df['enrollment_count'].mean(),
+        "total_enrollment": df['enrollment_count'].sum(),
+        "enrollment_distribution": df['enrollment_count'].value_counts().to_dict()
+    }
+    logger.debug(f"Enrollment statistics: {enrollment_stats}")
+    return enrollment_stats
+
+@logger.catch
+def calculate_enrollment_rates(cleaned_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Calculates the enrollment rate for each study.
+
+    Enrollment Rate = enrollment_count / (current_year - start_year)
+
+    Args:
+        cleaned_data (List[Dict[str, Any]]): List of cleaned study data.
+
+    Returns:
+        List[Dict[str, Any]]: Updated list with enrollment_rate added.
+    """
+    logger.debug("Starting calculation of enrollment rates.")
+    current_year = datetime.now().year
+    for study in cleaned_data:
+        start_date_str = study.get("start_date")
+        if start_date_str:
+            start_year = int(start_date_str.split("-")[0])
+            duration = current_year - start_year
+            if duration > 0:
+                enrollment_rate = study["enrollment_count"] / duration
+                logger.debug(
+                    f"Study ID {study.get('id')}: Calculated enrollment_rate = {enrollment_rate}"
+                )
+                study["enrollment_rate"] = enrollment_rate
+            else:
+                logger.warning(
+                    f"Study ID {study.get('id')}: Duration is non-positive. Setting enrollment_rate to enrollment_count."
+                )
+                study["enrollment_rate"] = study["enrollment_count"]
+        else:
+            logger.warning(
+                f"Study ID {study.get('id')}: No start_date provided. Setting enrollment_rate to None."
+            )
+            study["enrollment_rate"] = None
+    return cleaned_data
+
+@logger.catch
+def aggregate_conditions(cleaned_data: List[Dict[str, Any]]) -> Dict[str, int]:
+    """
+    Aggregates the number of studies per condition.
+
+    Args:
+        cleaned_data (List[Dict[str, Any]]): List of cleaned study data.
+
+    Returns:
+        Dict[str, int]: Dictionary with condition as key and count as value.
+    """
+    condition_counts = {}
+    for study in cleaned_data:
+        conditions = study.get("conditions", [])
+        for condition in conditions:
+            condition_counts[condition] = condition_counts.get(condition, 0) + 1
+            logger.debug(f"Condition '{condition}' count incremented to {condition_counts[condition]}")
+    logger.info(f"aggregate_conditions | Condition counts: {condition_counts}")
+    return condition_counts
+
+  # FILE:data\services\api\routers\enriched_studies.py
+
+  from fastapi import APIRouter, HTTPException, Request, Query
+  from typing import Optional, List, Dict, Any
+  from services.service import (
+      fetch_raw_data,
+      clean_and_transform_data,
+      calculate_enrollment_rates,
+      aggregate_conditions,
+      check_rate_limit
+  )
+  from loguru import logger
+  import pandas as pd
+  from datetime import datetime
+
+  # Initialize the APIRouter
+  router = APIRouter()
+
+
+
+  @router.get("/enriched-studies/multi-conditions")
+  def get_enriched_studies(
+      request: Request,
+      conditions: Optional[List[str]] = Query(
+          None, description="List of conditions to filter by"
+      ),
+      page_size: int = Query(
+          10, ge=1, le=1000, description="Number of studies per page"
+      ),
+      page_token: Optional[str] = Query(
+          None, description="Token for pagination"
+      )
+  ):
+      """
+      Retrieve enriched studies filtered by multiple conditions with calculated enrollment rates and condition aggregation.
+
+      Example:
+      /api/enriched-studies/multi-conditions?conditions=cancer&conditions=diabetes&page_size=5
+      """
+      client_ip = request.client.host
+      logger.debug(f"Received request from IP: {client_ip}")
+
+      # Check if the client has exceeded the rate limit
+      check_rate_limit(client_ip)
+      logger.info(f"Rate limit check passed for IP: {client_ip}")
+
+      try:
+          # Construct the condition query string
+          query_conditions = " AND ".join(conditions) if conditions else "cancer"
+          logger.debug(f"Constructed query conditions: {query_conditions}")
+
+          # Fetch raw data based on conditions and pagination
+          raw_json = fetch_raw_data(
+              condition=query_conditions,
+              page_size=page_size,
+              page_token=page_token
+          )
+          logger.debug(f"Raw JSON data fetched: {raw_json}")
+
+          # Clean and transform the fetched data
+          cleaned_data = clean_and_transform_data(raw_json)
+          logger.debug(f"Cleaned data: {cleaned_data}")
+
+          # Calculate enrollment rates for each study
+          enriched_data = calculate_enrollment_rates(cleaned_data)
+          logger.debug(f"Enriched data with enrollment rates: {enriched_data}")
+
+          # Aggregate conditions from the enriched data
+          condition_counts = aggregate_conditions(enriched_data)
+          logger.debug(f"Aggregated condition counts: {condition_counts}")
+
+          # Handle pagination token for the next page
+          next_token = raw_json.get("nextPageToken", None)
+          logger.debug(f"Next page token: {next_token}")
+
+          # Prepare the response payload
+          response = {
+              "count": len(enriched_data),
+              "studies": enriched_data,
+              "condition_counts": condition_counts,
+              "nextPageToken": next_token
+          }
+          logger.info(f"Returning response: {response}")
+
+          return response
+
+      except HTTPException as e:
+          logger.error(f"HTTPException occurred: {e.detail}")
+          raise e
+      except Exception as exc:
+          logger.exception("An unexpected error occurred in get_enriched_studies.")
+          raise HTTPException(status_code=500, detail=str(exc))
+
+   # data.services.api.routers.enrollment_insights
+   from fastapi import APIRouter, HTTPException, Request
+   from services.service import fetch_raw_data, clean_and_transform_data, analyze_enrollment_data, check_rate_limit
+   from loguru import logger
+
+   router = APIRouter()
+
+   @router.get("/enrollment-insights")
+   def get_enrollment_insights(request: Request):
+       client_ip = request.client.host
+       check_rate_limit(client_ip)
+
+       try:
+           raw_data = fetch_raw_data(condition="cancer", page_size=100)
+           cleaned_data = clean_and_transform_data(raw_data)
+           insights = analyze_enrollment_data(cleaned_data)
+
+           return insights
+       except HTTPException as e:
+           logger.error(f"get_enrollment_insights | HTTPException: {e.detail}")
+           raise e
+       except Exception as exc:
+           logger.exception("get_enrollment_insights | Unexpected error.")
+           raise HTTPException(status_code=500, detail=str(exc))
+
+  # data.services.api.routers.enums
+
+  from fastapi import APIRouter, HTTPException, Request
+  from services.service import fetch_study_enums, check_rate_limit
+  from loguru import logger
+
+  router = APIRouter()
+
+  @router.get("/enums")
+  def get_enums(request: Request = None):
+      """
+      Retrieve all study enumerations.
+      """
+      client_ip = request.client.host if request else "unknown"
+      check_rate_limit(client_ip)
+
+      try:
+          enums = fetch_study_enums()
+          logger.debug(f"get_enums | Retrieved enums: {enums}")
+          return enums
+      except HTTPException as e:
+          logger.error(f"get_enums | HTTPException: {e.detail}")
+          raise e
+      except Exception as exc:
+          logger.exception("get_enums | Unexpected error.")
+          raise HTTPException(status_code=500, detail=str(exc))
+
+ # data.services.api.routers.filtered_studies
+
+ from fastapi import APIRouter, HTTPException, Request, Query
+ from typing import Optional, List
+ from services.service import fetch_raw_data, clean_and_transform_data, check_rate_limit
+ from loguru import logger
+
+ router = APIRouter()
+
+ @router.get("/filtered-studies/multi-conditions")
+ def get_filtered_studies_multi_conditions(
+     request: Request,
+     conditions: Optional[List[str]] = Query(None, description="List of conditions to filter by"),
+     page_size: int = Query(10, ge=1, le=1000, description="Number of studies per page"),
+     page_token: Optional[str] = Query(None, description="Token for pagination")
+ ):
+     """
+     Retrieve studies filtered by multiple conditions.
+
+     Example:
+     /api/filtered-studies/multi-conditions?conditions=cancer&conditions=diabetes&page_size=5
+     """
+     client_ip = request.client.host
+     check_rate_limit(client_ip)
+
+     try:
+         if not conditions:
+             raise HTTPException(status_code=400, detail="At least one condition must be specified.")
+
+         # Construct the Essie expression for multiple conditions
+         query_conditions = " AND ".join([f"('{cond.strip()}')" for cond in conditions])
+         logger.debug(f"get_filtered_studies_multi_conditions | Conditions: {query_conditions}")
+
+         # Fetch raw data with the constructed conditions
+         raw_json = fetch_raw_data(
+             condition=query_conditions,
+             page_size=page_size,
+             page_token=page_token,
+             sort=["nctId:asc"]  # Optional: default sorting
+         )
+         logger.debug(f"get_filtered_studies_multi_conditions | Raw JSON data fetched: {raw_json}")
+
+         # Clean and transform the data
+         cleaned_data = clean_and_transform_data(raw_json)
+         logger.debug(f"get_filtered_studies_multi_conditions | Cleaned data: {cleaned_data}")
+
+         if not cleaned_data:
+             return {"count": 0, "studies": [], "nextPageToken": None}
+
+         # Handle pagination token
+         next_token = raw_json.get("nextPageToken", None)
+         logger.debug(f"get_filtered_studies_multi_conditions | Next page token: {next_token}")
+
+         return {
+             "count": len(cleaned_data),
+             "studies": cleaned_data,
+             "nextPageToken": next_token
+         }
+
+     except HTTPException as e:
+         logger.error(f"get_filtered_studies_multi_conditions | HTTPException: {e.detail}")
+         raise e
+     except Exception as exc:
+         logger.exception("get_filtered_studies_multi_conditions | Unexpected error.")
+         raise HTTPException(status_code=500, detail=str(exc))
+
+ @router.get("/filtered-studies/geo-bounds")
+ def get_filtered_studies_geo_bounds(
+     request: Request,
+     north: float = Query(..., description="Northern latitude"),
+     south: float = Query(..., description="Southern latitude"),
+     east: float = Query(..., description="Eastern longitude"),
+     west: float = Query(..., description="Western longitude"),
+     page_size: int = Query(10, ge=1, le=1000, description="Number of studies per page"),
+     page_token: Optional[str] = Query(None, description="Token for pagination")
+ ):
+     client_ip = request.client.host
+     check_rate_limit(client_ip)
+
+     try:
+         # Construct bounding box filter
+         location_str = f"bounding_box({north},{south},{east},{west})"
+         logger.debug(f"get_filtered_studies_geo_bounds | Bounding Box Filter: {location_str}")
+
+         raw_json = fetch_raw_data(
+             location_str=location_str,
+             page_size=page_size,
+             page_token=page_token
+         )
+         logger.debug(f"get_filtered_studies_geo_bounds | Raw JSON data fetched: {raw_json}")
+
+         # Clean and transform the data
+         cleaned_data = clean_and_transform_data(raw_json)
+         logger.debug(f"get_filtered_studies_geo_bounds | Cleaned data: {cleaned_data}")
+
+         # Handle pagination token
+         next_token = raw_json.get("nextPageToken", None)
+         logger.debug(f"get_filtered_studies_geo_bounds | Next page token: {next_token}")
+
+         return {
+             "count": len(cleaned_data),
+             "studies": cleaned_data,
+             "nextPageToken": next_token
+         }
+
+     except HTTPException as e:
+         logger.error(f"get_filtered_studies_geo_bounds | HTTPException: {e.detail}")
+         raise e
+     except Exception as exc:
+         logger.exception("get_filtered_studies_geo_bounds | Unexpected error.")
+         raise HTTPException(status_code=500, detail=str(exc))
+
+ # data.services.api.routers.geo_stats
+
+ from fastapi import APIRouter, HTTPException, Depends, Request, Query
+ from services.service import fetch_raw_data, clean_and_transform_data, check_rate_limit
+ from services.models import GeoStatsQuery
+ from loguru import logger
+
+ router = APIRouter()
+
+ @router.get("/geo-stats")
+ def get_geo_stats(
+     query: GeoStatsQuery = Depends(),
+     request: Request = None
+ ):
+     """
+     Advanced geospatial aggregator using validated query params from Pydantic.
+     """
+     client_ip = request.client.host if request else "unknown"
+     check_rate_limit(client_ip)
+
+     try:
+         # Construct the geo filter string based on latitude, longitude, and radius
+         location_str = f"distance({query.latitude},{query.longitude},{query.radius})"
+         raw_data = fetch_raw_data(
+             condition=query.condition,
+             location_str=location_str,
+             page_size=query.page_size,
+             fields=[
+                 "protocolSection.identificationModule.nctId",
+                 "protocolSection.identificationModule.briefTitle",
+                 "protocolSection.contactsLocationsModule.locations"
+             ]
+         )
+         if raw_data is None:
+             logger.error("get_geo_stats | fetch_raw_data returned None.")
+             raise HTTPException(status_code=500, detail="Failed to fetch raw data.")
+
+         studies = raw_data.get("studies", [])
+         country_counts = {}
+
+         for study in studies:
+             contacts_mod = study.get("protocolSection", {}).get("contactsLocationsModule", {})
+             locs = contacts_mod.get("locations", [])
+             for loc in locs:
+                 country = loc.get("country", "Unknown")
+                 country_counts[country] = country_counts.get(country, 0) + 1
+
+         logger.debug(f"get_geo_stats | Total studies: {len(studies)}, Country counts: {country_counts}")
+
+         return {
+             "totalStudies": len(studies),
+             "countryCounts": country_counts
+         }
+     except HTTPException as e:
+         logger.error(f"get_geo_stats | HTTPException: {e.detail}")
+         raise e
+     except Exception as exc:
+         logger.exception("get_geo_stats | Unexpected error.")
+         raise HTTPException(status_code=500, detail=str(exc))
+
+   # data.services.api.routers.participant_flow
+
+   from fastapi import APIRouter, HTTPException, Request
+   from services.service import fetch_single_study, parse_participant_flow, check_rate_limit
+   from loguru import logger
+
+   router = APIRouter()
+
+   @router.get("/study-results/participant-flow/{nct_id}")
+   def get_participant_flow_endpoint(nct_id: str, request: Request = None):
+       """
+       Retrieve a single study's participant flow, parse it into funnel data.
+       """
+       client_ip = request.client.host if request else "unknown"
+       check_rate_limit(client_ip)
+
+       try:
+           data = fetch_single_study(nct_id, fields=["protocolSection.resultsSection"])
+           if not data.get("protocolSection", {}).get("resultsSection"):
+               logger.debug(f"get_participant_flow_endpoint | No results section found for NCT ID={nct_id}")
+               return {"message": "No results section found for this study"}
+
+           funnel = parse_participant_flow(data["protocolSection"]["resultsSection"])
+           logger.debug(f"get_participant_flow_endpoint | Parsed funnel data: {funnel}")
+           return {"funnel": funnel}
+       except HTTPException as e:
+           logger.error(f"get_participant_flow_endpoint | HTTPException: {e.detail}")
+           raise e
+       except Exception as exc:
+           logger.exception("get_participant_flow_endpoint | Unexpected error.")
+           raise HTTPException(status_code=500, detail=str(exc))
+# data.services.api.routers.search_areas
+
+from fastapi import APIRouter, HTTPException, Request
+from services.service import fetch_search_areas, check_rate_limit
+from loguru import logger
+
+router = APIRouter()
+
+@router.get("/search-areas")
+def get_search_areas_endpoint(request: Request = None):
+    """
+    Retrieve all search areas.
+    """
+    client_ip = request.client.host if request else "unknown"
+    check_rate_limit(client_ip)
+
+    try:
+        search_areas = fetch_search_areas()
+        logger.debug(f"get_search_areas_endpoint | Retrieved search areas: {search_areas}")
+        return search_areas
+    except HTTPException as e:
+        logger.error(f"get_search_areas_endpoint | HTTPException: {e.detail}")
+        raise e
+    except Exception as exc:
+        logger.exception("get_search_areas_endpoint | Unexpected error.")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+  # data.services.api.routers.sorted_studies
+
+  from fastapi import APIRouter, HTTPException, Request, Query
+  from typing import Optional, List
+  from services.service import fetch_raw_data, clean_and_transform_data, check_rate_limit
+  from loguru import logger
+
+  # Initialize the APIRouter
+  router = APIRouter()
+
+  @router.get("/sorted-studies/multiple-fields")
+  def get_sorted_studies_multiple_fields(
+      request: Request,
+      sort_by: Optional[List[str]] = Query(
+          None, description="Fields to sort by, e.g., enrollment_count, start_date"
+      ),
+      sort_order: Optional[List[str]] = Query(
+          None, description="Sort order for each field, e.g., asc, desc"
+      ),
+      page_size: int = Query(
+          10, ge=1, le=1000, description="Number of studies per page"
+      ),
+      page_token: Optional[str] = Query(
+          None, description="Token for pagination"
+      )
+  ):
+      """
+      Retrieve studies sorted by specified multiple fields.
+
+      Example:
+      /api/sorted-studies/multiple-fields?sort_by=enrollment_count&sort_by=start_date&sort_order=asc&sort_order=desc&page_size=5
+      """
+      client_ip = request.client.host
+      logger.debug(f"Received request from IP: {client_ip}")
+
+      # Check if the client has exceeded the rate limit
+      check_rate_limit(client_ip)
+      logger.info(f"Rate limit check passed for IP: {client_ip}")
+
+      try:
+          # Validate and construct sort parameters
+          if sort_by and sort_order:
+              if len(sort_by) != len(sort_order):
+                  logger.error("Mismatch between sort_by and sort_order lengths.")
+                  raise HTTPException(
+                      status_code=400,
+                      detail="The number of sort_by fields must match the number of sort_order fields."
+                  )
+              sort_params = [
+                  f"{field}:{order.lower()}" for field, order in zip(sort_by, sort_order)
+              ]
+              logger.debug(f"Sort parameters with order: {sort_params}")
+          elif sort_by:
+              # Default sort order is ascending
+              sort_params = [f"{field}:asc" for field in sort_by]
+              logger.debug(f"Sort parameters with default order: {sort_params}")
+          else:
+              sort_params = []
+              logger.debug("No sort parameters provided.")
+
+          # Fetch raw data based on sort parameters and pagination
+          raw_json = fetch_raw_data(
+              sort=sort_params,
+              page_size=page_size,
+              page_token=page_token
+          )
+          logger.debug(f"Raw JSON data fetched: {raw_json}")
+
+          # Clean and transform the fetched data
+          cleaned_data = clean_and_transform_data(raw_json)
+          logger.debug(f"Cleaned data: {cleaned_data}")
+
+          # Handle pagination token for the next page
+          next_token = raw_json.get("nextPageToken", None)
+          logger.debug(f"Next page token: {next_token}")
+
+          # Prepare the response payload
+          response = {
+              "count": len(cleaned_data),
+              "studies": cleaned_data,
+              "nextPageToken": next_token
+          }
+          logger.info(f"Returning response: {response}")
+
+          return response
+
+      except HTTPException as e:
+          logger.error(f"HTTPException occurred: {e.detail}")
+          raise e
+      except Exception as exc:
+          logger.exception("An unexpected error occurred in get_sorted_studies_multiple_fields.")
+          raise HTTPException(status_code=500, detail=str(exc))
+
+   # data.services.api.routers.stats_field_values
+
+   from fastapi import APIRouter, HTTPException, Request, Query
+   from typing import List, Optional
+   from services.service import fetch_field_values, check_rate_limit
+   from loguru import logger
+
+   router = APIRouter()
+
+   @router.get("/stats/field/values")
+   def get_stats_field_values(
+       fields: List[str],
+       field_types: Optional[List[str]] = None,
+       request: Request = None
+   ):
+       """
+       Retrieve field values statistics.
+       """
+       client_ip = request.client.host if request else "unknown"
+       check_rate_limit(client_ip)
+
+       try:
+           field_values = fetch_field_values(fields, field_types)
+           logger.debug(f"get_stats_field_values | Retrieved field values: {field_values}")
+           return field_values
+       except HTTPException as e:
+           logger.error(f"get_stats_field_values | HTTPException: {e.detail}")
+           raise e
+       except Exception as exc:
+           logger.exception("get_stats_field_values | Unexpected error.")
+           raise HTTPException(status_code=500, detail=str(exc))
+
+  # data.services.api.routers.stats_size
+
+  from fastapi import APIRouter, HTTPException, Request
+  from services.service import fetch_study_sizes, check_rate_limit
+  from loguru import logger
+
+  router = APIRouter()
+
+  @router.get("/stats/size")
+  def get_stats_size(request: Request = None):
+      """
+      Retrieve study sizes statistics.
+      """
+      client_ip = request.client.host if request else "unknown"
+      check_rate_limit(client_ip)
+
+      try:
+          study_sizes = fetch_study_sizes()
+          logger.debug(f"get_stats_size | Retrieved study sizes: {study_sizes}")
+          return study_sizes
+      except HTTPException as e:
+          logger.error(f"get_stats_size | HTTPException: {e.detail}")
+          raise e
+      except Exception as exc:
+          logger.exception("get_stats_size | Unexpected error.")
+          raise HTTPException(status_code=500, detail=str(exc))
+
+ # data.services.api.routers.studies
+
+ from fastapi import APIRouter, HTTPException, Request
+ from typing import Optional, List
+ from services.service import fetch_single_study, check_rate_limit
+ from loguru import logger
+
+ router = APIRouter()
+
+ @router.get("/studies/{nct_id}")
+ def get_study_details(
+     nct_id: str,
+     fields: Optional[List[str]] = None,
+     request: Request = None  # to get client IP
+ ):
+     """
+     Retrieve a single study by NCT ID, optionally specifying fields to return.
+     """
+     client_ip = request.client.host if request else "unknown"
+     check_rate_limit(client_ip)
+
+     try:
+         data = fetch_single_study(nct_id, fields)
+         if not data:
+             logger.debug(f"get_study_details | No data returned for NCT ID={nct_id}")
+             return {"message": "No data returned"}
+
+         logger.debug(f"get_study_details | Retrieved data for NCT ID={nct_id}: {data}")
+         return data
+     except HTTPException as e:
+         logger.error(f"get_study_details | HTTPException: {e.detail}")
+         raise e
+     except Exception as exc:
+         logger.exception("get_study_details | Unexpected error.")
+         raise HTTPException(status_code=500, detail=str(exc))
+
+ # data.services.api.routers.time_stats
+
+ from fastapi import APIRouter, HTTPException, Request, Query
+ from services.service import fetch_raw_data, check_rate_limit
+ from loguru import logger
+
+ router = APIRouter()
+
+ @router.get("/time-stats")
+ def get_time_stats(
+     condition: str,
+     start_year: int = 2020,
+     request: Request = None
+ ):
+     """
+     Aggregator to show how many studies were updated or started each year after 'start_year'.
+     """
+     client_ip = request.client.host if request else "unknown"
+     check_rate_limit(client_ip)
+
+     try:
+         # Construct the advanced filter string for date range
+         time_filter = f"AREA[LastUpdatePostDate]RANGE[{start_year}-01-01,MAX]"
+         raw_data = fetch_raw_data(
+             condition=condition,
+             advanced_filter=time_filter,
+             page_size=100,  # Adjust as needed
+             fields=["protocolSection.identificationModule.nctId", "protocolSection.statusModule.lastUpdatePostDateStruct.date"]
+         )
+         studies = raw_data.get("studies", [])
+         year_counts = {}
+
+         for study in studies:
+             status_mod = study.get("protocolSection", {}).get("statusModule", {})
+             last_update_struct = status_mod.get("lastUpdatePostDateStruct", {})
+             date_str = last_update_struct.get("date", None)
+             if date_str:
+                 # Extract year from date string, e.g., "2023-05-10" -> "2023"
+                 year = date_str.split("-")[0]
+                 year_counts[year] = year_counts.get(year, 0) + 1
+
+         logger.debug(f"time_stats | Total studies: {len(studies)}, Year breakdown: {year_counts}")
+
+         return {
+             "totalStudies": len(studies),
+             "yearBreakdown": year_counts
+         }
+     except HTTPException as e:
+         logger.error(f"get_time_stats | HTTPException: {e.detail}")
+         raise e
+     except Exception as exc:
+         logger.exception("get_time_stats | Unexpected error.")
+         raise HTTPException(status_code=500, detail=str(exc))
+
+ # data.services.api.advanced
+
+ from fastapi import APIRouter
+ from services.api.routers import (
+     studies,
+     participant_flow,
+     enums,
+     search_areas,
+     stats_size,
+     stats_field_values,
+     geo_stats,
+     time_stats,
+     enrollment_insights,
+     filtered_studies,
+     sorted_studies,
+     enriched_studies
+ )
+
+ router = APIRouter()
+
+ # Include sub-routers
+ router.include_router(studies.router)
+ router.include_router(participant_flow.router)
+ router.include_router(enums.router)
+ router.include_router(search_areas.router)
+ router.include_router(stats_size.router)
+ router.include_router(stats_field_values.router)
+ router.include_router(geo_stats.router)
+ router.include_router(time_stats.router)
+ router.include_router(enrollment_insights.router)
+ router.include_router(filtered_studies.router)
+ router.include_router(sorted_studies.router)
+ router.include_router(enriched_studies.router)
+
+ # data.services.api.filtered_studies
+
+ from fastapi import APIRouter, Query, HTTPException, Request
+ from typing import Optional, List
+ from services.service import (
+     fetch_raw_data,
+     clean_and_transform_data,
+     check_rate_limit
+ )
+ from loguru import logger
+
+ router = APIRouter()
+
+ @router.get("/")
+ def get_filtered_studies(
+     request: Request,
+     conditions: Optional[List[str]] = Query(default=["cancer"]),
+     page_size: int = Query(default=10, ge=1, le=1000),
+     only_with_results: bool = Query(default=False),
+     page_token: Optional[str] = Query(None),
+     search_term: Optional[str] = Query(None),
+     overall_status: Optional[List[str]] = Query(None),
+     location_str: Optional[str] = Query(None),
+     advanced_filter: Optional[str] = Query(None)
+ ):
+     # Update condition handling
+     condition_query = " AND ".join(conditions) if conditions else "cancer"
+     raw_json = fetch_raw_data(
+         condition=condition_query,
+         page_size=page_size,
+         page_token=page_token,
+         overall_status=overall_status,
+         search_term=search_term,
+         location_str=location_str,
+         advanced_filter=advanced_filter
+     )
+     """
+     GET /api/filtered-studies with advanced query support.
+
+     Example:
+     /api/filtered-studies?condition=heart disease
+                            &search_term=AREA[LastUpdatePostDate]RANGE[2023-01-15,MAX]
+                            &page_size=5
+                            &overall_status=RECRUITING
+                            &only_with_results=true
+     """
+     client_ip = request.client.host
+     check_rate_limit(client_ip)
+
+     try:
+         raw_json = fetch_raw_data(
+             condition=condition_query,
+             page_size=page_size,
+             page_token=page_token,
+             overall_status=overall_status,
+             search_term=search_term,
+             location_str=location_str,
+             advanced_filter=advanced_filter
+         )
+
+         logger.debug(f"get_filtered_studies | Raw JSON data fetched: {raw_json}")
+
+         cleaned_data = clean_and_transform_data(raw_json)
+         logger.debug(f"get_filtered_studies | Cleaned data: {cleaned_data}")
+
+         if only_with_results:
+             cleaned_data = [s for s in cleaned_data if s.get("hasResults")]
+             logger.debug(f"get_filtered_studies | Filtered data with results: {cleaned_data}")
+
+         next_token = raw_json.get("nextPageToken", None)
+         logger.debug(f"get_filtered_studies | Next page token: {next_token}")
+
+         return {
+             "count": len(cleaned_data),
+             "studies": cleaned_data,
+             "nextPageToken": next_token
+         }
+
+     except HTTPException as e:
+         logger.error(f"get_filtered_studies | HTTPException: {e.detail}")
+         raise e
+     except Exception as exc:
+         logger.exception("get_filtered_studies | Unexpected error.")
+         raise HTTPException(status_code=500, detail=str(exc))
+# data.services.api_clients.clinical_trials_client
+
+import requests
+import requests_cache
+from typing import List, Dict, Any, Optional
+from loguru import logger
+from fastapi import HTTPException
+from ..utils.error_handling import _handle_errors
+
+
+# Enable in-memory caching with a 5-minute expiration
+requests_cache.install_cache(
+    cache_name='clinical_trials_cache',
+    backend='memory',
+    expire_after=60*5  # 5 minutes
+)
+
+API_BASE_URL = "https://clinicaltrials.gov/api/v2"
+
+@logger.catch
+def fetch_raw_data(
+    condition: str = "cancer",
+    page_size: int = 10,
+    page_token: Optional[str] = None,
+    overall_status: Optional[List[str]] = None,
+    search_term: Optional[str] = None,
+    location_str: Optional[str] = None,
+    advanced_filter: Optional[str] = None,
+    fields: Optional[List[str]] = None,
+    sort: Optional[List[str]] = None
+) -> Dict[str, Any]:
+    """
+    Fetch raw study data from ClinicalTrials.gov v2 API with advanced query & filter support.
+    Utilizes caching to minimize redundant requests.
+    """
+    params = {
+        "format": "json",
+        "pageSize": page_size,
+        "query.cond": condition,
+    }
+
+    if search_term:
+        params["query.term"] = search_term
+
+    if page_token:
+        params["pageToken"] = page_token
+
+    if overall_status:
+        params["filter.overallStatus"] = ",".join(overall_status)
+
+    if location_str:
+        params["filter.geo"] = location_str
+
+    if advanced_filter:
+        params["filter.advanced"] = advanced_filter
+
+    if fields and len(fields) > 0:
+        params["fields"] = ",".join(fields)
+
+    if sort:
+        params["sort"] = ",".join(sort)
+
+    logger.debug(f"fetch_raw_data | GET {API_BASE_URL}/studies with params={params}")
+
+    try:
+        response = requests.get(f"{API_BASE_URL}/studies", params=params, timeout=30)
+        _handle_errors(response)
+        data = response.json()
+        logger.debug(f"fetch_raw_data | Retrieved {len(data.get('studies', []))} studies.")
+        return data
+    except requests.RequestException:
+        logger.exception("[ERROR fetch_raw_data] Unhandled request exception.")
+        raise HTTPException(status_code=500, detail="Failed to fetch raw data.")
+
+@logger.catch
+def fetch_single_study(nct_id: str, fields: Optional[List[str]] = None) -> Dict[str, Any]:
+    """
+    Fetch details for a single study by NCT ID from the v2 API.
+    """
+    params = {"format": "json"}
+    if fields and len(fields) > 0:
+        params["fields"] = ",".join(fields)
+
+    url = f"{API_BASE_URL}/studies/{nct_id}"
+    logger.debug(f"fetch_single_study | GET {url} with params={params}")
+
+    try:
+        response = requests.get(url, params=params, timeout=30)
+        _handle_errors(response)
+        data = response.json()
+        logger.debug(f"fetch_single_study | Retrieved data for NCT ID={nct_id}")
+        return data
+    except requests.RequestException:
+        logger.exception("[ERROR fetch_single_study] Unhandled request exception.")
+        raise HTTPException(status_code=500, detail="Failed to fetch single study.")
+
+@logger.catch
+def fetch_study_enums() -> List[Dict[str, Any]]:
+    """
+    Fetch all enumerations from the v2 API.
+    """
+    url = f"{API_BASE_URL}/studies/enums"
+    logger.debug(f"fetch_study_enums | GET {url}")
+
+    try:
+        response = requests.get(url, timeout=30)
+        _handle_errors(response)
+        data = response.json()
+        logger.debug(f"fetch_study_enums | Retrieved {len(data)} enums.")
+        return data
+    except requests.RequestException:
+        logger.exception("[ERROR fetch_study_enums] Unhandled request exception.")
+        raise HTTPException(status_code=500, detail="Failed to fetch study enums.")
+
+@logger.catch
+def fetch_search_areas() -> List[Dict[str, Any]]:
+    """
+    Fetch all search areas from the v2 API.
+    """
+    url = f"{API_BASE_URL}/studies/search-areas"
+    logger.debug(f"fetch_search_areas | GET {url}")
+
+    try:
+        response = requests.get(url, timeout=30)
+        _handle_errors(response)
+        data = response.json()
+        logger.debug(f"fetch_search_areas | Retrieved {len(data)} search areas.")
+        return data
+    except requests.RequestException:
+        logger.exception("[ERROR fetch_search_areas] Unhandled request exception.")
+        raise HTTPException(status_code=500, detail="Failed to fetch search areas.")
+
+@logger.catch
+def fetch_field_values(fields: List[str], field_types: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+    """
+    Fetch field values statistics from the v2 API.
+    """
+    url = f"{API_BASE_URL}/stats/field/values"
+    params = {"fields": ",".join(fields)}
+
+    if field_types:
+        params["types"] = ",".join(field_types)
+
+    logger.debug(f"fetch_field_values | GET {url} with params={params}")
+
+    try:
+        response = requests.get(url, params=params, timeout=30)
+        _handle_errors(response)
+        data = response.json()
+        logger.debug(f"fetch_field_values | Retrieved field values for fields: {fields}")
+        return data
+    except requests.RequestException:
+        logger.exception("[ERROR fetch_field_values] Unhandled request exception.")
+        raise HTTPException(status_code=500, detail="Failed to fetch field values.")
+
+@logger.catch
+def fetch_study_sizes() -> Dict[str, Any]:
+    """
+    Fetch study sizes statistics from the v2 API.
+    """
+    url = f"{API_BASE_URL}/stats/size"
+    logger.debug(f"fetch_study_sizes | GET {url}")
+
+    try:
+        response = requests.get(url, timeout=30)
+        _handle_errors(response)
+        data = response.json()
+        logger.debug("fetch_study_sizes | Retrieved study sizes statistics.")
+        return data
+    except requests.RequestException:
+        logger.exception("[ERROR fetch_study_sizes] Unhandled request exception.")
+        raise HTTPException(status_code=500, detail="Failed to fetch study sizes.")
+
+  #data.services.data_processing.data_cleaning
+
+  from typing import List, Dict, Any
+  from loguru import logger
+
+  @logger.catch
+  def clean_and_transform_data(raw_json: Dict[str, Any]) -> List[Dict[str, Any]]:
+      """
+      Cleans and transforms raw JSON data into a list of dictionaries with relevant fields.
+      """
+      if "studies" not in raw_json:
+          logger.debug("clean_and_transform_data | No studies found in raw_json.")
+          return []
+
+      cleaned_data = []
+      for study in raw_json["studies"]:
+          protocol_section = study.get("protocolSection", {})
+          identification_module = protocol_section.get("identificationModule", {})
+          status_module = protocol_section.get("statusModule", {})
+          design_module = protocol_section.get("designModule", {})
+          conditions_module = protocol_section.get("conditionsModule", {})
+
+          nct_id = identification_module.get("nctId", "N/A")
+          brief_title = identification_module.get("briefTitle", "No Title")
+          overall_status = status_module.get("overallStatus", "Unknown")
+          has_results = study.get("hasResults", False)
+
+          enrollment_info = design_module.get("enrollmentInfo", {})
+          enrollment_count = enrollment_info.get("count", 0)  # Ensure default is 0
+
+          start_date_struct = status_module.get("startDateStruct", {})
+          start_date = start_date_struct.get("date")
+
+          conditions = conditions_module.get("conditions", [])
+
+          if nct_id == "N/A" or brief_title == "No Title":
+              logger.debug(f"clean_and_transform_data | Skipping study with nctId={nct_id}")
+              continue
+
+          cleaned_record = {
+              "nctId": nct_id,
+              "briefTitle": brief_title,
+              "overallStatus": overall_status,
+              "hasResults": has_results,
+              "enrollment_count": enrollment_count,  # Standardized key
+              "start_date": start_date,               # Consistent key naming
+              "conditions": conditions
+          }
+
+          cleaned_data.append(cleaned_record)
+
+      logger.debug(f"clean_and_transform_data | Returning {len(cleaned_data)} items.")
+      logger.info(f"clean_and_transform_data | Cleaned data: {cleaned_data}")
+      return cleaned_data
+
+ #data.services.data_processing.participant_flow
+
+ from typing import Dict, Any, List, Tuple
+ from loguru import logger
+
+ @logger.catch
+ def parse_participant_flow(results_section: Dict[str, Any]) -> Dict[str, Any]:
+     """
+     Parses the participant flow data from the results section.
+     """
+     flow_module = results_section.get("participantFlowModule", {})
+     if not flow_module:
+         logger.debug("parse_participant_flow | No participantFlowModule found.")
+         return {}
+
+     periods = flow_module.get("periods", [])
+     total_started, total_completed, total_dropped, drop_reasons = parse_periods(periods)
+
+     funnel_data = {
+         "totalStarted": total_started,
+         "totalCompleted": total_completed,
+         "totalDropped": total_dropped,
+         "dropReasons": drop_reasons
+     }
+
+     logger.debug(f"parse_participant_flow | Parsed participant flow: {funnel_data}")
+     return funnel_data
+
+ def parse_periods(periods: List[Dict[str, Any]]) -> Tuple[int, int, int, Dict[str, int]]:
+     """
+     Parses periods to calculate totals for started, completed, and dropped participants.
+     """
+     total_started = 0
+     total_completed = 0
+     total_dropped = 0
+     drop_reasons = {}
+
+     for period in periods:
+         started, completed = parse_milestones(period.get("milestones", []))
+         total_started += started
+         total_completed += completed
+
+         dropped, reasons = parse_drop_withdraws(period.get("dropWithdraws", []))
+         total_dropped += dropped
+         for reason, count in reasons.items():
+             drop_reasons[reason] = drop_reasons.get(reason, 0) + count
+
+     return total_started, total_completed, total_dropped, drop_reasons
+
+ def parse_milestones(milestones: List[Dict[str, Any]]) -> Tuple[int, int]:
+     """
+     Parses milestones to calculate started and completed participants.
+     """
+     total_started = 0
+     total_completed = 0
+
+     for milestone in milestones:
+         for achievement in milestone.get("achievements", []):
+             num_val = parse_num_subjects(achievement.get("flowAchievementNumSubjects", "0"))
+             milestone_type = milestone.get("type", "").upper()
+             if milestone_type == "STARTED":
+                 total_started += num_val
+             elif milestone_type == "COMPLETED":
+                 total_completed += num_val
+
+     return total_started, total_completed
+
+ def parse_drop_withdraws(drop_withdraws: List[Dict[str, Any]]) -> Tuple[int, Dict[str, int]]:
+     """
+     Parses dropWithdraws to calculate total dropped participants and reasons.
+     """
+     total_dropped = 0
+     drop_reasons = {}
+
+     for drop_withdraw in drop_withdraws:
+         reason_type = drop_withdraw.get("type", "Unknown")
+         reasons = drop_withdraw.get("reasons", [])
+         reason_sum = sum(parse_num_subjects(reason.get("numSubjects", "0")) for reason in reasons)
+         total_dropped += reason_sum
+         drop_reasons[reason_type] = drop_reasons.get(reason_type, 0) + reason_sum
+
+     return total_dropped, drop_reasons
+
+ def parse_num_subjects(num_str: str) -> int:
+     """
+     Parses the number of subjects from a string. Returns 0 if parsing fails.
+     """
+     try:
+         return int(num_str)
+     except ValueError:
+         logger.warning(f"parse_num_subjects | Invalid number of subjects: {num_str}")
+         return 0
+
+  # data.services.models
+
+  from pydantic import BaseModel, Field, validator
+  from typing import Optional
+
+  class GeoStatsQuery(BaseModel):
+      """
+      Pydantic model to validate query parameters for the geo-stats endpoint.
+      """
+      condition: str = Field(..., description="Condition to filter by, e.g. 'cancer'")
+      latitude: float = Field(..., description="Latitude for geo filter, e.g. 39.00357")
+      longitude: float = Field(..., description="Longitude for geo filter, e.g. -77.10133")
+      radius: str = Field("50mi", description="Radius, e.g. '50mi' or '100km'")
+      page_size: Optional[int] = Field(100, description="Number of results per page, up to 1000")
+
+      @validator('page_size')
+      def validate_page_size(cls, v):
+          if v is not None and (v <= 0 or v > 1000):
+              raise ValueError('page_size must be greater than 0 and less than or equal to 1000')
+          return v
+
+ # data.services.service
+
+ from typing import List, Dict, Any, Optional
+ from loguru import logger
+ from fastapi import HTTPException, Request
+ from .utils.rate_limiting import check_rate_limit
+ from .api_clients.clinical_trials_client import (
+     fetch_raw_data,
+     fetch_single_study,
+     fetch_study_enums,
+     fetch_search_areas,
+     fetch_field_values,
+     fetch_study_sizes
+ )
+ from .data_processing.data_cleaning import clean_and_transform_data
+ from .data_processing.participant_flow import parse_participant_flow
+ from .analysis.enrollment_analysis import (
+     analyze_enrollment_data,
+     calculate_enrollment_rates,
+     aggregate_conditions
+ )
+
+ @logger.catch
+ def get_study_details(nct_id: str, fields: Optional[List[str]] = None, request: Optional[Request] = None) -> Dict[str, Any]:
+     """
+     Retrieve details of a single study by NCT ID.
+     """
+     client_ip = request.client.host if request else "unknown"
+     check_rate_limit(client_ip)
+
+     try:
+         data = fetch_single_study(nct_id, fields)
+         if not data:
+             logger.debug(f"get_study_details | No data returned for NCT ID={nct_id}")
+             return {"message": "No data returned"}
+
+         logger.debug(f"get_study_details | Retrieved data for NCT ID={nct_id}: {data}")
+         return data
+     except HTTPException as e:
+         logger.error(f"get_study_details | HTTPException: {e.detail}")
+         raise e
+     except Exception as exc:
+         logger.exception("get_study_details | Unexpected error.")
+         raise HTTPException(status_code=500, detail=str(exc))
+
+ @logger.catch
+ def get_enums(request: Optional[Request] = None) -> List[Dict[str, Any]]:
+     """
+     Retrieve all study enumerations.
+     """
+     client_ip = request.client.host if request else "unknown"
+     check_rate_limit(client_ip)
+
+     try:
+         enums = fetch_study_enums()
+         logger.debug(f"get_enums | Retrieved enums: {enums}")
+         return enums
+     except HTTPException as e:
+         logger.error(f"get_enums | HTTPException: {e.detail}")
+         raise e
+     except Exception as exc:
+         logger.exception("get_enums | Unexpected error.")
+         raise HTTPException(status_code=500, detail=str(exc))
+
+ @logger.catch
+ def get_search_areas(request: Optional[Request] = None) -> List[Dict[str, Any]]:
+     """
+     Retrieve all search areas.
+     """
+     client_ip = request.client.host if request else "unknown"
+     check_rate_limit(client_ip)
+
+     try:
+         search_areas = fetch_search_areas()
+         logger.debug(f"get_search_areas | Retrieved search areas: {search_areas}")
+         return search_areas
+     except HTTPException as e:
+         logger.error(f"get_search_areas | HTTPException: {e.detail}")
+         raise e
+     except Exception as exc:
+         logger.exception("get_search_areas | Unexpected error.")
+         raise HTTPException(status_code=500, detail=str(exc))
+
+ @logger.catch
+ def get_field_values(fields: List[str], field_types: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+     """
+     Retrieve field values statistics.
+     """
+     try:
+         field_values = fetch_field_values(fields, field_types)
+         logger.debug(f"get_field_values | Retrieved field values: {field_values}")
+         return field_values
+     except HTTPException as e:
+         logger.error(f"get_field_values | HTTPException: {e.detail}")
+         raise e
+     except Exception as exc:
+         logger.exception("get_field_values | Unexpected error.")
+         raise HTTPException(status_code=500, detail=str(exc))
+
+ @logger.catch
+ def get_study_sizes() -> Dict[str, Any]:
+     """
+     Retrieve study sizes statistics.
+     """
+     try:
+         study_sizes = fetch_study_sizes()
+         logger.debug(f"get_study_sizes | Retrieved study sizes: {study_sizes}")
+         return study_sizes
+     except HTTPException as e:
+         logger.error(f"get_study_sizes | HTTPException: {e.detail}")
+         raise e
+     except Exception as exc:
+         logger.exception("get_study_sizes | Unexpected error.")
+         raise HTTPException(status_code=500, detail=str(exc))
+
+ @logger.catch
+ def handle_participant_flow(results_section: Dict[str, Any]) -> Dict[str, Any]:
+     """
+     Handle parsing of participant flow data.
+     """
+     try:
+         funnel = parse_participant_flow(results_section)
+         logger.debug(f"handle_participant_flow | Parsed funnel data: {funnel}")
+         return funnel
+     except HTTPException as e:
+         logger.error(f"handle_participant_flow | HTTPException: {e.detail}")
+         raise e
+     except Exception as exc:
+         logger.exception("handle_participant_flow | Unexpected error.")
+         raise HTTPException(status_code=500, detail=str(exc))
+
+ @logger.catch
+ def process_enrollment_data(cleaned_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+     """
+     Analyze enrollment data from cleaned study data.
+     """
+     try:
+         enrollment_stats = analyze_enrollment_data(cleaned_data)
+         logger.debug(f"process_enrollment_data | Enrollment stats: {enrollment_stats}")
+         return enrollment_stats
+     except Exception as exc:
+         logger.exception("process_enrollment_data | Unexpected error.")
+         raise HTTPException(status_code=500, detail=str(exc))
+
+ @logger.catch
+ def enrich_study_data(cleaned_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+     """
+     Enrich study data with enrollment rates and condition aggregation.
+     """
+     try:
+         enriched_data = calculate_enrollment_rates(cleaned_data)
+         condition_counts = aggregate_conditions(enriched_data)
+         logger.debug(f"enrich_study_data | Enriched data: {enriched_data}")
+         logger.debug(f"enrich_study_data | Condition counts: {condition_counts}")
+         return {
+             "enrichedData": enriched_data,
+             "conditionCounts": condition_counts
+         }
+     except Exception as exc:
+         logger.exception("enrich_study_data | Unexpected error.")
+         raise HTTPException(status_code=500, detail=str(exc))
+
+ # File: tests/test_advanced_filters.py
+
+ def test_multi_condition_filtering(client):
+     """
+     Test filtering studies by multiple conditions.
+     """
+     response = client.get(
+         "/api/filtered-studies/multi-conditions",
+         params={"conditions": ["cancer", "diabetes"], "page_size": 5}
+     )
+     assert response.status_code == 200
+     data = response.json()
+     assert "studies" in data
+     assert isinstance(data["studies"], list)
+     for study in data["studies"]:
+         assert any(cond in study["conditions"] for cond in ["cancer", "diabetes"])
+
+
+ def test_geospatial_filtering_bounding_box(client):
+     """
+     Test filtering studies within a geographical bounding box.
+     """
+     params = {
+         "north": 40.0,
+         "south": 35.0,
+         "east": -70.0,
+         "west": -80.0
+     }
+     response = client.get(
+         "/api/filtered-studies/geo-bounds",
+         params=params
+     )
+     assert response.status_code == 200
+     data = response.json()
+     assert "studies" in data
+     assert isinstance(data["studies"], list)
+     # Additional assertions based on expected data structure can be added here
+
+# File: tests/test_api.py
+
+import pytest
+from fastapi.testclient import TestClient
+from loguru import logger
+
+
+def test_root(client):
+    """
+    Test the root endpoint to ensure it returns a welcome message.
+    """
+    logger.info("Testing root endpoint")
+    response = client.get("/")
+    logger.info(f"Response status code: {response.status_code}")
+    assert response.status_code == 200
+    json_response = response.json()
+    logger.info(f"Response JSON: {json_response}")
+    assert "message" in json_response
+    assert "Hello from the Python backend with advanced features!" in json_response["message"]
+
+
+def test_filtered_studies(client):
+    """
+    Basic check to ensure the /api/filtered-studies endpoint returns a 200 status code
+    and includes expected keys in the JSON response.
+    """
+    logger.info("Testing /api/filtered-studies endpoint with condition=cancer and page_size=2")
+    response = client.get("/api/filtered-studies/multi-conditions", params={"condition": "cancer", "page_size": 2})
+    logger.info(f"Response status code: {response.status_code}")
+    assert response.status_code == 200
+    json_data = response.json()
+    logger.info(f"Response JSON: {json_data}")
+    assert "count" in json_data
+    assert "studies" in json_data
+    assert isinstance(json_data["studies"], list)
+
+
+def test_get_study_details(client):
+    """
+    Test fetching details of a specific study by NCT ID.
+    """
+    nct_id = "NCT04000165"
+    logger.info(f"Testing /api/studies/{nct_id} endpoint")
+    response = client.get(f"/api/studies/{nct_id}")
+    logger.info(f"Response status code: {response.status_code}")
+    assert response.status_code == 200
+    json_response = response.json()
+    logger.info(f"Response JSON: {json_response}")
+    assert "protocolSection" in json_response or "message" in json_response
+
+
+def test_geo_stats(client):
+    """
+    Test the /api/geo-stats endpoint with valid query parameters.
+    """
+    params = {
+        "condition": "cancer",
+        "latitude": 39.00357,
+        "longitude": -77.10133,
+        "radius": "50mi",
+        "page_size": 10
+    }
+    logger.info(f"Testing /api/geo-stats endpoint with params: {params}")
+    response = client.get("/api/geo-stats", params=params)
+    logger.info(f"Response status code: {response.status_code}")
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+    json_data = response.json()
+    logger.info(f"Response JSON: {json_data}")
+    assert "totalStudies" in json_data
+    assert "countryCounts" in json_data
+    assert isinstance(json_data["countryCounts"], dict)
+
+
+def test_time_stats(client):
+    """
+    Test the /api/time-stats endpoint with valid query parameters.
+    """
+    params = {
+        "condition": "cancer",
+        "start_year": 2020
+    }
+    logger.info(f"Testing /api/time-stats endpoint with params: {params}")
+    response = client.get("/api/time-stats", params=params)
+    logger.info(f"Response status code: {response.status_code}")
+    assert response.status_code == 200
+    json_data = response.json()
+    logger.info(f"Response JSON: {json_data}")
+    assert "totalStudies" in json_data
+    assert "yearBreakdown" in json_data
+    assert isinstance(json_data["yearBreakdown"], dict)
+
+
+def test_filtered_studies_with_advanced_filters(client):
+    """
+    Test the /api/filtered-studies endpoint with advanced filters.
+    """
+    params = {
+        "condition": "heart disease",
+        "search_term": "AREA[LastUpdatePostDate]RANGE[2023-01-15,MAX]",
+        "page_size": 5,
+        "overall_status": "RECRUITING",
+        "only_with_results": True
+    }
+    logger.info(f"Testing /api/filtered-studies endpoint with advanced filters: {params}")
+    response = client.get("/api/filtered-studies/multi-conditions", params=params)
+    logger.info(f"Response status code: {response.status_code}")
+    assert response.status_code == 200
+    json_data = response.json()
+    logger.info(f"Response JSON: {json_data}")
+    assert "count" in json_data
+    assert "studies" in json_data
+    assert len(json_data["studies"]) <= 5
+    for study in json_data["studies"]:
+        assert study["overallStatus"] == "RECRUITING"
+        assert study["hasResults"] is True
+
+ # File: tests/test_data_transformation.py
+
+ import datetime
+
+ import pytest
+
+
+ def test_calculate_enrollment_rates(client):
+     """
+     Test the calculation of enrollment rates for studies.
+     """
+     response = client.get(
+         "/api/enriched-studies/multi-conditions",
+         params={"conditions": ["cancer"], "page_size": 5}
+     )
+     assert response.status_code == 200
+     data = response.json()
+     studies = data.get("studies", [])
+     assert isinstance(studies, list)
+     current_year = datetime.datetime.now().year
+     for study in studies:
+         enrollment_count = study.get("enrollment_count")
+         start_date = study.get("start_date")
+         if start_date and enrollment_count is not None:
+             start_year = int(start_date.split("-")[0])
+             duration = current_year - start_year
+             expected_rate = enrollment_count / duration if duration > 0 else enrollment_count
+             assert study.get("enrollment_rate") == expected_rate
+         else:
+             assert study.get("enrollment_rate") is None
+
+
+ def test_aggregate_conditions(client):
+     """
+     Test aggregation of studies by conditions.
+     """
+     response = client.get(
+         "/api/enriched-studies/multi-conditions",
+         params={"conditions": ["cancer"], "page_size": 10}
+     )
+     assert response.status_code == 200
+     data = response.json()
+     condition_counts = data.get("condition_counts", {})
+     assert isinstance(condition_counts, dict)
+     # Example: Ensure certain conditions are present
+     # Replace "Condition1" with actual condition names expected
+     expected_conditions = ["Condition1", "Condition2", "ConditionA"]
+     for condition in expected_conditions:
+         if condition in condition_counts:
+             assert condition_counts[condition] >= 1
+         else:
+             pytest.fail(f"Expected condition '{condition}' not found in condition_counts.")
+
+# File: tests/test_service.py
+
+import pytest
+from loguru import logger
+from services.service import clean_and_transform_data, parse_participant_flow
+
+
+logger.add("debug.log", format="{time} {level} {message}", level="DEBUG")
+
+
+def test_clean_and_transform_data():
+    """
+    Test the clean_and_transform_data function with a fake raw_json input.
+    Ensures that the function correctly cleans and transforms the data.
+    """
+    logger.info("Starting test for clean_and_transform_data function")
+
+    # Fake raw_json input with hasResults=False, expecting no studies after cleaning
+    raw_json = {
+        "studies": [
+            {
+                "hasResults": False,
+                "protocolSection": {
+                    "identificationModule": {
+                        "nctId": "NCT12345678",
+                        "briefTitle": "Fake Title"
+                    },
+                    "statusModule": {
+                        "overallStatus": "RECRUITING",
+                        "startDateStruct": {"date": "2024-01-01"}
+                    },
+                    "designModule": {
+                        "enrollmentInfo": {"count": 100}
+                    },
+                    "conditionsModule": {
+                        "conditions": ["Cancer"]
+                    }
+                }
+            }
+        ]
+    }
+
+    logger.debug(f"Input raw JSON data: {raw_json}")
+
+    # Expected output is an empty list since hasResults=False
+    expected = []
+
+    logger.debug(f"Expected transformed data: {expected}")
+
+    # Perform the transformation
+    result = clean_and_transform_data(raw_json)
+
+    logger.debug(f"Actual transformed data: {result}")
+
+    # Assertions
+    assert result == expected, "Expected no studies after cleaning, but some were returned."
+    logger.info("test_clean_and_transform_data passed successfully")
+
+
+def test_parse_participant_flow():
+    """
+    Test the parse_participant_flow function with example data.
+    Ensures that the function correctly parses participant flow information.
+    """
+    logger.info("Starting test for parse_participant_flow function")
+
+    # Example data with milestones and dropWithdraw
+    results_section = {
+        "participantFlowModule": {
+            "periods": [
+                {
+                    "milestones": [
+                        {"type": "STARTED", "achievements": [{"flowAchievementNumSubjects": "50"}]},
+                        {"type": "COMPLETED", "achievements": [{"flowAchievementNumSubjects": "40"}]}
+                    ],
+                    "dropWithdraws": [
+                        {
+                            "type": "Withdrawal by Subject",
+                            "reasons": [{"numSubjects": "5"}]
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+
+    logger.debug(f"Input results section data: {results_section}")
+
+    # Expected output
+    expected = {
+        "totalStarted": 50,
+        "totalCompleted": 40,
+        "totalDropped": 5,
+        "dropReasons": {
+            "Withdrawal by Subject": 5
+        }
+    }
+
+    logger.debug(f"Expected parsed participant flow data: {expected}")
+
+    # Perform the parsing
+    flow = parse_participant_flow(results_section)
+
+    logger.debug(f"Actual parsed participant flow data: {flow}")
+
+    # Assertions
+    assert flow == expected, "Participant flow data does not match expected output."
+    logger.info("test_parse_participant_flow passed successfully")
+
+
+def test_clean_and_transform_data_with_multiple_studies():
+    """
+    Test the clean_and_transform_data function with multiple studies.
+    Ensures that the function correctly filters studies based on 'hasResults'.
+    """
+    logger.info("Starting test for clean_and_transform_data function with multiple studies")
+
+    raw_json = {
+        "studies": [
+            {
+                "protocolSection": {
+                    "identificationModule": {
+                        "nctId": "NCT12345678",
+                        "briefTitle": "Study Title Example"
+                    },
+                    "statusModule": {
+                        "overallStatus": "Recruiting",
+                        "startDateStruct": {
+                            "date": "2021-01-01"
+                        }
+                    },
+                    "designModule": {
+                        "enrollmentInfo": {
+                            "count": 100
+                        }
+                    },
+                    "conditionsModule": {
+                        "conditions": ["Condition1", "Condition2"]
+                    }
+                },
+                "hasResults": True
+            },
+            {
+                "protocolSection": {
+                    "identificationModule": {
+                        "nctId": "NCT87654321",
+                        "briefTitle": "Another Study Title"
+                    },
+                    "statusModule": {
+                        "overallStatus": "Completed",
+                        "startDateStruct": {
+                            "date": "2020-06-15"
+                        }
+                    },
+                    "designModule": {
+                        "enrollmentInfo": {
+                            "count": 50
+                        }
+                    },
+                    "conditionsModule": {
+                        "conditions": ["ConditionA"]
+                    }
+                },
+                "hasResults": False
+            }
+        ]
+    }
+
+    logger.debug(f"Input raw JSON data with multiple studies: {raw_json}")
+
+    # Expected output with only the study that has results
+    expected = [{
+        "nctId": "NCT12345678",
+        "briefTitle": "Study Title Example",
+        "overallStatus": "Recruiting",
+        "hasResults": True,
+        "enrollment_count": 100,
+        "start_date": "2021-01-01",
+        "conditions": ["Condition1", "Condition2"]
+    }]
+
+    logger.debug(f"Expected transformed data with filtered studies: {expected}")
+
+    cleaned_data = clean_and_transform_data(raw_json)
+    logger.debug(f"Cleaned data after transformation: {cleaned_data}")
+
+    assert len(cleaned_data) == 1, f"Expected 1 study after cleaning, got {len(cleaned_data)}."
+    assert cleaned_data[0]["nctId"] == "NCT12345678", "NCT ID does not match expected value."
+    assert cleaned_data[0]["enrollment_count"] == 100, "Enrollment count does not match expected value."
+
+    # Perform the transformation
+    result = clean_and_transform_data(raw_json)
+
+    logger.debug(f"Actual transformed data: {result}")
+
+    # Assertions
+    assert result == expected, "Transformed data does not match expected output."
+    logger.info("test_clean_and_transform_data_with_multiple_studies passed successfully")
+
+  # File: tests/test_sorting.py
+
+  def test_sorting_by_multiple_fields(client):
+      """
+      Test sorting studies by enrollment_count ascending and start_date descending.
+      """
+      params = {
+          "sort_by": ["enrollment_count", "start_date"],
+          "sort_order": ["asc", "desc"],
+          "page_size": 5
+      }
+      response = client.get(
+          "/api/sorted-studies/multiple-fields",
+          params=params
+      )
+      assert response.status_code == 200, f"Expected status code 200, got {response.status_code}"
+      data = response.json()
+      studies = data.get("studies", [])
+      assert isinstance(studies, list)
+      assert len(studies) > 0, "No studies returned in the response."
+
+      # Verify sorting: enrollment_count ascending
+      enrollment_counts = [study["enrollment_count"] for study in studies]
+      assert enrollment_counts == sorted(enrollment_counts), "Enrollment counts are not sorted in ascending order."
+
+      # Verify sorting: start_date descending
+      start_dates = [study["start_date"] for study in studies if study.get("start_date")]
+      start_dates_sorted_desc = sorted(start_dates, reverse=True)
+      assert start_dates == start_dates_sorted_desc, "Start dates are not sorted in descending order."
+
+
+
+

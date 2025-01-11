@@ -6,8 +6,6 @@ requests
 requests-cache
 pytest
 pytest-cov
-pytest
-pytest-cov
 httpx
 pytest
 loguru

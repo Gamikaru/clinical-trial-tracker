@@ -4,7 +4,9 @@ import pytest
 from loguru import logger
 from services.service import clean_and_transform_data, parse_participant_flow
 
+
 logger.add("debug.log", format="{time} {level} {message}", level="DEBUG")
+
 
 def test_clean_and_transform_data():
     """
@@ -13,7 +15,7 @@ def test_clean_and_transform_data():
     """
     logger.info("Starting test for clean_and_transform_data function")
 
-    # Fake raw_json input
+    # Fake raw_json input with hasResults=False, expecting no studies after cleaning
     raw_json = {
         "studies": [
             {
@@ -40,16 +42,8 @@ def test_clean_and_transform_data():
 
     logger.debug(f"Input raw JSON data: {raw_json}")
 
-    # Expected output with standardized key "enrollment_count"
-    expected = [{
-        "nctId": "NCT12345678",
-        "briefTitle": "Fake Title",
-        "overallStatus": "RECRUITING",
-        "hasResults": False,
-        "enrollment_count": 100,  # Updated to match standardized key
-        "start_date": "2024-01-01",  # Consistent key naming
-        "conditions": ["Cancer"]
-    }]
+    # Expected output is an empty list since hasResults=False
+    expected = []
 
     logger.debug(f"Expected transformed data: {expected}")
 
@@ -59,8 +53,9 @@ def test_clean_and_transform_data():
     logger.debug(f"Actual transformed data: {result}")
 
     # Assertions
-    assert result == expected
+    assert result == expected, "Expected no studies after cleaning, but some were returned."
     logger.info("test_clean_and_transform_data passed successfully")
+
 
 def test_parse_participant_flow():
     """
@@ -109,8 +104,9 @@ def test_parse_participant_flow():
     logger.debug(f"Actual parsed participant flow data: {flow}")
 
     # Assertions
-    assert flow == expected
+    assert flow == expected, "Participant flow data does not match expected output."
     logger.info("test_parse_participant_flow passed successfully")
+
 
 def test_clean_and_transform_data_with_multiple_studies():
     """
@@ -188,9 +184,9 @@ def test_clean_and_transform_data_with_multiple_studies():
     cleaned_data = clean_and_transform_data(raw_json)
     logger.debug(f"Cleaned data after transformation: {cleaned_data}")
 
-    assert len(cleaned_data) == 1  # Only one study has results
-    assert cleaned_data[0]["nctId"] == "NCT12345678"
-    assert cleaned_data[0]["enrollment_count"] == 100
+    assert len(cleaned_data) == 1, f"Expected 1 study after cleaning, got {len(cleaned_data)}."
+    assert cleaned_data[0]["nctId"] == "NCT12345678", "NCT ID does not match expected value."
+    assert cleaned_data[0]["enrollment_count"] == 100, "Enrollment count does not match expected value."
 
     # Perform the transformation
     result = clean_and_transform_data(raw_json)
@@ -198,5 +194,5 @@ def test_clean_and_transform_data_with_multiple_studies():
     logger.debug(f"Actual transformed data: {result}")
 
     # Assertions
-    assert result == expected
+    assert result == expected, "Transformed data does not match expected output."
     logger.info("test_clean_and_transform_data_with_multiple_studies passed successfully")

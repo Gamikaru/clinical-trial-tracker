@@ -1,4 +1,4 @@
-# File: services/api/filtered_studies.py
+# data.services.api.filtered_studies
 
 from fastapi import APIRouter, Query, HTTPException, Request
 from typing import Optional, List
@@ -14,7 +14,7 @@ router = APIRouter()
 @router.get("/")
 def get_filtered_studies(
     request: Request,
-    condition: Optional[str] = Query(default="cancer"),
+    conditions: Optional[List[str]] = Query(default=["cancer"]),
     page_size: int = Query(default=10, ge=1, le=1000),
     only_with_results: bool = Query(default=False),
     page_token: Optional[str] = Query(None),
@@ -23,6 +23,17 @@ def get_filtered_studies(
     location_str: Optional[str] = Query(None),
     advanced_filter: Optional[str] = Query(None)
 ):
+    # Update condition handling
+    condition_query = " AND ".join(conditions) if conditions else "cancer"
+    raw_json = fetch_raw_data(
+        condition=condition_query,
+        page_size=page_size,
+        page_token=page_token,
+        overall_status=overall_status,
+        search_term=search_term,
+        location_str=location_str,
+        advanced_filter=advanced_filter
+    )
     """
     GET /api/filtered-studies with advanced query support.
 
@@ -38,7 +49,7 @@ def get_filtered_studies(
 
     try:
         raw_json = fetch_raw_data(
-            condition=condition,
+            condition=condition_query,
             page_size=page_size,
             page_token=page_token,
             overall_status=overall_status,
@@ -70,4 +81,109 @@ def get_filtered_studies(
         raise e
     except Exception as exc:
         logger.exception("get_filtered_studies | Unexpected error.")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+
+@router.get("/filtered-studies/multi-conditions")
+def get_filtered_studies_multi_conditions(
+    request: Request,
+    conditions: Optional[List[str]] = Query(None, description="List of conditions to filter by"),
+    page_size: int = Query(10, ge=1, le=1000, description="Number of studies per page"),
+    page_token: Optional[str] = Query(None, description="Token for pagination")
+):
+    """
+    Retrieve studies filtered by multiple conditions.
+
+    Example:
+    /api/filtered-studies/multi-conditions?conditions=cancer&conditions=diabetes&page_size=5
+    """
+    client_ip = request.client.host
+    check_rate_limit(client_ip)
+
+    try:
+        if not conditions:
+            raise HTTPException(status_code=400, detail="At least one condition must be specified.")
+
+        # Construct the Essie expression for multiple conditions
+        query_conditions = " AND ".join([f"('{cond.strip()}')" for cond in conditions])
+        logger.debug(f"get_filtered_studies_multi_conditions | Conditions: {query_conditions}")
+
+        # Fetch raw data with the constructed conditions
+        raw_json = fetch_raw_data(
+            condition=query_conditions,
+            page_size=page_size,
+            page_token=page_token,
+            sort=["nctId:asc"]  # Optional: default sorting
+        )
+        logger.debug(f"get_filtered_studies_multi_conditions | Raw JSON data fetched: {raw_json}")
+
+        # Clean and transform the data
+        cleaned_data = clean_and_transform_data(raw_json)
+        logger.debug(f"get_filtered_studies_multi_conditions | Cleaned data: {cleaned_data}")
+
+        if not cleaned_data:
+            return {"count": 0, "studies": [], "nextPageToken": None}
+
+        # Handle pagination token
+        next_token = raw_json.get("nextPageToken", None)
+        logger.debug(f"get_filtered_studies_multi_conditions | Next page token: {next_token}")
+
+        return {
+            "count": len(cleaned_data),
+            "studies": cleaned_data,
+            "nextPageToken": next_token
+        }
+
+    except HTTPException as e:
+        logger.error(f"get_filtered_studies_multi_conditions | HTTPException: {e.detail}")
+        raise e
+    except Exception as exc:
+        logger.exception("get_filtered_studies_multi_conditions | Unexpected error.")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+@router.get("/filtered-studies/geo-bounds")
+def get_filtered_studies_geo_bounds(
+    request: Request,
+    north: float = Query(..., description="Northern latitude"),
+    south: float = Query(..., description="Southern latitude"),
+    east: float = Query(..., description="Eastern longitude"),
+    west: float = Query(..., description="Western longitude"),
+    page_size: int = Query(10, ge=1, le=1000, description="Number of studies per page"),
+    page_token: Optional[str] = Query(None, description="Token for pagination")
+):
+    client_ip = request.client.host
+    check_rate_limit(client_ip)
+
+    try:
+        # Construct bounding box filter
+        location_str = f"bounding_box({north},{south},{east},{west})"
+        logger.debug(f"get_filtered_studies_geo_bounds | Bounding Box Filter: {location_str}")
+
+        raw_json = fetch_raw_data(
+            location_str=location_str,
+            page_size=page_size,
+            page_token=page_token
+        )
+        logger.debug(f"get_filtered_studies_geo_bounds | Raw JSON data fetched: {raw_json}")
+
+        # Clean and transform the data
+        cleaned_data = clean_and_transform_data(raw_json)
+        logger.debug(f"get_filtered_studies_geo_bounds | Cleaned data: {cleaned_data}")
+
+        # Handle pagination token
+        next_token = raw_json.get("nextPageToken", None)
+        logger.debug(f"get_filtered_studies_geo_bounds | Next page token: {next_token}")
+
+        return {
+            "count": len(cleaned_data),
+            "studies": cleaned_data,
+            "nextPageToken": next_token
+        }
+
+    except HTTPException as e:
+        logger.error(f"get_filtered_studies_geo_bounds | HTTPException: {e.detail}")
+        raise e
+    except Exception as exc:
+        logger.exception("get_filtered_studies_geo_bounds | Unexpected error.")
         raise HTTPException(status_code=500, detail=str(exc))

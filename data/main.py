@@ -1,4 +1,3 @@
-# filepath: /path/to/main.py
 from fastapi import FastAPI, HTTPException, Request
 from services.service import (
     fetch_raw_data,
@@ -19,7 +18,7 @@ app.include_router(advanced.router, prefix="/api", tags=["Advanced"])
 # Include the 'filtered_studies' router with the prefix '/api/filtered-studies'
 app.include_router(filtered_studies.router, prefix="/api/filtered-studies", tags=["Filtered Studies"])
 
-@app.get("/")
+@app.get("/", include_in_schema=True)
 async def root():
     """
     Root endpoint to verify that the server is running.
