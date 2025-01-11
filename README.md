@@ -27,6 +27,7 @@ This project is only a personal test build. Data and code are for demonstration.
 - **Chart.js** for data visualization
 - **React Router** for navigation
 - **Vite** as the build tool
+- **Framer** for animated transitions & effects
 
 ## Directory Structure
 
@@ -118,8 +119,6 @@ This project is only a personal test build. Data and code are for demonstration.
     npm run build && npm run preview
     ```
 
-     Open [http://localhost:3000](http://localhost:3000) to view the app in the browser.
-
 ## Features
 
 - **Login** (placeholder, not yet implemented)
@@ -136,7 +135,10 @@ This project is only a personal test build. Data and code are for demonstration.
 
 ## API Integration
 
-Uses the public clinical trial data API to fetch and manage trial data. Axios is configured in `src/services/api.ts` to handle API requests and include JWT tokens for authenticated routes.
+Uses this [public clinical trial data API](https://clinicaltrials.gov/data-api/about-api/study-data-structure#intro
+) to fetch and manage trial data. Axios is configured in `src/services/api.ts` to handle API requests and include JWT tokens for authenticated routes
+
+
 
 ## Testing
 
