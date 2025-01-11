@@ -17,12 +17,18 @@ def analyze_enrollment_data(cleaned_data: List[Dict[str, Any]]) -> Dict[str, Any
     """
     logger.debug("Starting enrollment data analysis.")
     df = pd.DataFrame(cleaned_data)
+    avg_enroll = df['enrollment_count'].mean()
+    total_enroll = df['enrollment_count'].sum()
+    distribution_series = df['enrollment_count'].value_counts()
+
+    # Convert NumPy dtypes to native Python int/float
     enrollment_stats = {
-        "average_enrollment": df['enrollment_count'].mean(),
-        "total_enrollment": df['enrollment_count'].sum(),
-        "enrollment_distribution": df['enrollment_count'].value_counts().to_dict()
+        "average_enrollment": float(avg_enroll),
+        "total_enrollment": int(total_enroll),
+        "enrollment_distribution": {
+            int(k): int(v) for k, v in distribution_series.to_dict().items()
+        }
     }
-    logger.debug(f"Enrollment statistics: {enrollment_stats}")
     return enrollment_stats
 
 @logger.catch

@@ -1,14 +1,10 @@
-#data.services.data_processing.data_cleaning
-
 from typing import List, Dict, Any
 from loguru import logger
+import numpy as np
 
 @logger.catch
 def clean_and_transform_data(raw_json: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """
-    Cleans and transforms raw JSON data into a list of dictionaries with relevant fields.
-    """
-    if "studies" not in raw_json:
+    if not raw_json or "studies" not in raw_json:
         logger.debug("clean_and_transform_data | No studies found in raw_json.")
         return []
 
@@ -42,8 +38,8 @@ def clean_and_transform_data(raw_json: Dict[str, Any]) -> List[Dict[str, Any]]:
             "briefTitle": brief_title,
             "overallStatus": overall_status,
             "hasResults": has_results,
-            "enrollment_count": enrollment_count,  # Standardized key
-            "start_date": start_date,               # Consistent key naming
+            "enrollment_count": int(enrollment_count),  # Convert to native Python int
+            "start_date": start_date,
             "conditions": conditions
         }
 

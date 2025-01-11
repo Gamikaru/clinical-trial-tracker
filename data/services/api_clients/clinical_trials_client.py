@@ -29,10 +29,6 @@ def fetch_raw_data(
     fields: Optional[List[str]] = None,
     sort: Optional[List[str]] = None
 ) -> Dict[str, Any]:
-    """
-    Fetch raw study data from ClinicalTrials.gov v2 API with advanced query & filter support.
-    Utilizes caching to minimize redundant requests.
-    """
     params = {
         "format": "json",
         "pageSize": page_size,

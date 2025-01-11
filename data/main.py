@@ -47,7 +47,7 @@ async def get_enrollment_stats(request: Request):
         average_enrollment = df['enrollment_count'].mean()
         logger.info(f"get_enrollment_stats | Calculated average enrollment: {average_enrollment}")
 
-        return {"average_enrollment": average_enrollment}
+        return {"average_enrollment": float(average_enrollment)}  # Convert to native Python float
     except HTTPException as e:
         logger.error(f"get_enrollment_stats | HTTPException: {e.detail}")
         raise e  # Re-raise HTTP exceptions to be handled by FastAPI
