@@ -1,10 +1,19 @@
-# tests/test_service.py
+# File: tests/test_service.py
 
 import pytest
+from loguru import logger
 from services.service import clean_and_transform_data, parse_participant_flow
 
+logger.add("debug.log", format="{time} {level} {message}", level="DEBUG")
+
 def test_clean_and_transform_data():
-    # Fake raw_json
+    """
+    Test the clean_and_transform_data function with a fake raw_json input.
+    Ensures that the function correctly cleans and transforms the data.
+    """
+    logger.info("Starting test for clean_and_transform_data function")
+
+    # Fake raw_json input
     raw_json = {
         "studies": [
             {
@@ -29,14 +38,37 @@ def test_clean_and_transform_data():
         ]
     }
 
+    logger.debug(f"Input raw JSON data: {raw_json}")
+
+    # Expected output with standardized key "enrollment_count"
+    expected = [{
+        "nctId": "NCT12345678",
+        "briefTitle": "Fake Title",
+        "overallStatus": "RECRUITING",
+        "hasResults": False,
+        "enrollment_count": 100,  # Updated to match standardized key
+        "start_date": "2024-01-01",  # Consistent key naming
+        "conditions": ["Cancer"]
+    }]
+
+    logger.debug(f"Expected transformed data: {expected}")
+
+    # Perform the transformation
     result = clean_and_transform_data(raw_json)
-    assert len(result) == 1
-    assert result[0]["nctId"] == "NCT12345678"
-    assert result[0]["overallStatus"] == "RECRUITING"
-    assert result[0]["enrollment"] == 100
-    assert result[0]["conditions"] == ["Cancer"]
+
+    logger.debug(f"Actual transformed data: {result}")
+
+    # Assertions
+    assert result == expected
+    logger.info("test_clean_and_transform_data passed successfully")
 
 def test_parse_participant_flow():
+    """
+    Test the parse_participant_flow function with example data.
+    Ensures that the function correctly parses participant flow information.
+    """
+    logger.info("Starting test for parse_participant_flow function")
+
     # Example data with milestones and dropWithdraw
     results_section = {
         "participantFlowModule": {
@@ -56,8 +88,115 @@ def test_parse_participant_flow():
             ]
         }
     }
+
+    logger.debug(f"Input results section data: {results_section}")
+
+    # Expected output
+    expected = {
+        "totalStarted": 50,
+        "totalCompleted": 40,
+        "totalDropped": 5,
+        "dropReasons": {
+            "Withdrawal by Subject": 5
+        }
+    }
+
+    logger.debug(f"Expected parsed participant flow data: {expected}")
+
+    # Perform the parsing
     flow = parse_participant_flow(results_section)
-    assert flow["totalStarted"] == 50
-    assert flow["totalCompleted"] == 40
-    assert flow["totalDropped"] == 5
-    assert flow["dropReasons"]["Withdrawal by Subject"] == 5
+
+    logger.debug(f"Actual parsed participant flow data: {flow}")
+
+    # Assertions
+    assert flow == expected
+    logger.info("test_parse_participant_flow passed successfully")
+
+def test_clean_and_transform_data_with_multiple_studies():
+    """
+    Test the clean_and_transform_data function with multiple studies.
+    Ensures that the function correctly filters studies based on 'hasResults'.
+    """
+    logger.info("Starting test for clean_and_transform_data function with multiple studies")
+
+    raw_json = {
+        "studies": [
+            {
+                "protocolSection": {
+                    "identificationModule": {
+                        "nctId": "NCT12345678",
+                        "briefTitle": "Study Title Example"
+                    },
+                    "statusModule": {
+                        "overallStatus": "Recruiting",
+                        "startDateStruct": {
+                            "date": "2021-01-01"
+                        }
+                    },
+                    "designModule": {
+                        "enrollmentInfo": {
+                            "count": 100
+                        }
+                    },
+                    "conditionsModule": {
+                        "conditions": ["Condition1", "Condition2"]
+                    }
+                },
+                "hasResults": True
+            },
+            {
+                "protocolSection": {
+                    "identificationModule": {
+                        "nctId": "NCT87654321",
+                        "briefTitle": "Another Study Title"
+                    },
+                    "statusModule": {
+                        "overallStatus": "Completed",
+                        "startDateStruct": {
+                            "date": "2020-06-15"
+                        }
+                    },
+                    "designModule": {
+                        "enrollmentInfo": {
+                            "count": 50
+                        }
+                    },
+                    "conditionsModule": {
+                        "conditions": ["ConditionA"]
+                    }
+                },
+                "hasResults": False
+            }
+        ]
+    }
+
+    logger.debug(f"Input raw JSON data with multiple studies: {raw_json}")
+
+    # Expected output with only the study that has results
+    expected = [{
+        "nctId": "NCT12345678",
+        "briefTitle": "Study Title Example",
+        "overallStatus": "Recruiting",
+        "hasResults": True,
+        "enrollment_count": 100,
+        "start_date": "2021-01-01",
+        "conditions": ["Condition1", "Condition2"]
+    }]
+
+    logger.debug(f"Expected transformed data with filtered studies: {expected}")
+
+    cleaned_data = clean_and_transform_data(raw_json)
+    logger.debug(f"Cleaned data after transformation: {cleaned_data}")
+
+    assert len(cleaned_data) == 1  # Only one study has results
+    assert cleaned_data[0]["nctId"] == "NCT12345678"
+    assert cleaned_data[0]["enrollment_count"] == 100
+
+    # Perform the transformation
+    result = clean_and_transform_data(raw_json)
+
+    logger.debug(f"Actual transformed data: {result}")
+
+    # Assertions
+    assert result == expected
+    logger.info("test_clean_and_transform_data_with_multiple_studies passed successfully")

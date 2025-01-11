@@ -118,6 +118,12 @@ dmypy.json
 *.log
 docker-compose.override.yml
 
+# stderr
+stderr
+
+# test results
+test_api.log
+
 # Node.js
 node_modules/
 npm-debug.log*
@@ -187,3 +193,4 @@ dist/
 
 # TailwindCSS JIT
 .tailwindcss/
+

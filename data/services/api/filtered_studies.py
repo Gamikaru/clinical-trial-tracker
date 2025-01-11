@@ -1,39 +1,42 @@
-# services/api/filtered_studies.py
+# File: services/api/filtered_studies.py
 
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Request
 from typing import Optional, List
-
 from services.service import (
     fetch_raw_data,
-    clean_and_transform_data
+    clean_and_transform_data,
+    check_rate_limit
 )
+from loguru import logger
 
 router = APIRouter()
 
-@router.get("/filtered-studies")
+@router.get("/")
 def get_filtered_studies(
-    condition: Optional[str] = Query(default="cancer", description="Condition to filter by"),
-    page_size: int = Query(default=10, description="Number of results per page"),
-    only_with_results: bool = Query(default=False, description="Return only studies with posted results"),
-    page_token: Optional[str] = Query(default=None, description="Pagination page token"),
-    # Additional query params
-    search_term: Optional[str] = Query(None, description="Additional 'query.term' param"),
-    overall_status: Optional[List[str]] = Query(None, description="List of statuses, e.g. RECRUITING, COMPLETED"),
-    location_str: Optional[str] = Query(None, description="Geo filter, e.g. 'distance(39.0,-77.1,50mi)'"),
-    advanced_filter: Optional[str] = Query(None, description="Essie expression, e.g. 'AREA[StartDate]2022'")
+    request: Request,
+    condition: Optional[str] = Query(default="cancer"),
+    page_size: int = Query(default=10, ge=1, le=1000),
+    only_with_results: bool = Query(default=False),
+    page_token: Optional[str] = Query(None),
+    search_term: Optional[str] = Query(None),
+    overall_status: Optional[List[str]] = Query(None),
+    location_str: Optional[str] = Query(None),
+    advanced_filter: Optional[str] = Query(None)
 ):
     """
     GET /api/filtered-studies with advanced query support.
 
-    Example usage:
-      /api/filtered-studies?condition=heart disease
+    Example:
+    /api/filtered-studies?condition=heart disease
                            &search_term=AREA[LastUpdatePostDate]RANGE[2023-01-15,MAX]
                            &page_size=5
                            &overall_status=RECRUITING
                            &only_with_results=true
     """
+    client_ip = request.client.host
+    check_rate_limit(client_ip)
+
     try:
-        # 1) Fetch raw data with advanced parameters
         raw_json = fetch_raw_data(
             condition=condition,
             page_size=page_size,
@@ -44,15 +47,17 @@ def get_filtered_studies(
             advanced_filter=advanced_filter
         )
 
-        # 2) Clean/transform
-        cleaned_data = clean_and_transform_data(raw_json)
+        logger.debug(f"get_filtered_studies | Raw JSON data fetched: {raw_json}")
 
-        # 3) Optionally filter by hasResults
+        cleaned_data = clean_and_transform_data(raw_json)
+        logger.debug(f"get_filtered_studies | Cleaned data: {cleaned_data}")
+
         if only_with_results:
             cleaned_data = [s for s in cleaned_data if s.get("hasResults")]
+            logger.debug(f"get_filtered_studies | Filtered data with results: {cleaned_data}")
 
-        # If the official API includes nextPageToken, pass it to the response
         next_token = raw_json.get("nextPageToken", None)
+        logger.debug(f"get_filtered_studies | Next page token: {next_token}")
 
         return {
             "count": len(cleaned_data),
@@ -60,6 +65,9 @@ def get_filtered_studies(
             "nextPageToken": next_token
         }
 
+    except HTTPException as e:
+        logger.error(f"get_filtered_studies | HTTPException: {e.detail}")
+        raise e
     except Exception as exc:
-        # If anything goes wrong, return a 500
+        logger.exception("get_filtered_studies | Unexpected error.")
         raise HTTPException(status_code=500, detail=str(exc))

@@ -1,20 +1,64 @@
-# services/service.py
+# File: services/service.py
 
 import requests
-import requests_cache  # new
-from typing import List, Dict, Any, Optional
+import requests_cache
+from typing import List, Dict, Any, Optional, Tuple
+from loguru import logger
+import time
+from fastapi import HTTPException
+import pandas as pd
 
-# Enable requests-cache globally
-# We create an in-memory cache named 'clinical_trials_cache'
-requests_cache.install_cache(cache_name='clinical_trials_cache', backend='memory', expire_after=60*5)
-# ^ expire_after=60*5 => 5 minutes caching
+# Rate-limit configuration
+MAX_TOKENS = 50        # Maximum number of requests allowed
+REFILL_RATE = 0.1      # Tokens refilled per second (0.1 = 1 token every 10 seconds)
+rate_limit_store = {}  # In-memory store: {client_ip: (tokens, last_timestamp)}
+
+# Enable in-memory caching with a 5-minute expiration
+requests_cache.install_cache(
+    cache_name='clinical_trials_cache',
+    backend='memory',
+    expire_after=60*5  # 5 minutes
+)
 
 API_BASE_URL = "https://clinicaltrials.gov/api/v2"
 
-# -----------------------------------------------------------------------------
-# Extended Query Options
-# -----------------------------------------------------------------------------
+def _handle_errors(response: requests.Response):
+    """
+    Raises HTTPException if the response contains an HTTP error status.
+    Logs the error details.
+    """
+    try:
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        logger.error(f"Request failed with status {response.status_code}: {response.text}")
+        raise HTTPException(
+            status_code=response.status_code,
+            detail=f"Error from upstream API: {response.text}"
+        ) from e
 
+def check_rate_limit(client_ip: str):
+    """
+    Implements a simple token-bucket rate limiting algorithm.
+    Raises HTTPException if the client has exceeded the rate limit.
+    """
+    now = time.time()
+    tokens, last_ts = rate_limit_store.get(client_ip, (MAX_TOKENS, now))
+
+    # Refill tokens based on elapsed time
+    elapsed = now - last_ts
+    refill_amount = elapsed * REFILL_RATE
+    tokens = min(MAX_TOKENS, tokens + refill_amount)
+
+    if tokens < 1:
+        # No tokens available; rate limit exceeded
+        logger.warning(f"Rate limit reached for IP={client_ip}")
+        raise HTTPException(status_code=429, detail="Too Many Requests. Please slow down.")
+
+    # Use 1 token
+    tokens -= 1
+    rate_limit_store[client_ip] = (tokens, now)
+
+@logger.catch
 def fetch_raw_data(
     condition: str = "cancer",
     page_size: int = 10,
@@ -27,191 +71,154 @@ def fetch_raw_data(
     sort: Optional[List[str]] = None
 ) -> Dict[str, Any]:
     """
-    Fetch raw study data from ClinicalTrials.gov v2 API, with advanced query & filter support.
-
-    By default, we only do: query.cond=cancer, format=json, pageSize=10.
-    You can pass in additional parameters for advanced searching:
-      - search_term -> query.term
-      - overall_status -> filter.overallStatus
-      - location_str -> filter.geo (like 'distance(lat,lon,radius)')
-      - advanced_filter -> filter.advanced
-      - fields -> array of fields to retrieve from the JSON
-      - sort -> array of sorting expressions, e.g. ["LastUpdatePostDate", "EnrollmentCount:desc"]
-
-    The returned JSON includes "studies" array, "nextPageToken", etc.
+    Fetch raw study data from ClinicalTrials.gov v2 API with advanced query & filter support.
+    Utilizes caching to minimize redundant requests.
     """
-    # Basic required params
     params = {
         "format": "json",
         "pageSize": page_size,
-        "query.cond": condition,  # e.g., "heart disease"
+        "query.cond": condition,
     }
 
-    # Conditionally add advanced queries
     if search_term:
         params["query.term"] = search_term
 
     if page_token:
         params["pageToken"] = page_token
 
-    # If user wants to filter by recruitment status
-    # e.g. overall_status=["RECRUITING","COMPLETED"]
     if overall_status:
-        # The API allows multiple status values
-        # We can pass them as repeated filter.overallStatus= ??? in a single request
-        # But in GET requests, we can also just separate them with commas:
         params["filter.overallStatus"] = ",".join(overall_status)
 
     if location_str:
-        # e.g. 'distance(39.0035707,-77.1013313,50mi)'
-        # The official docs say we can do: filter.geo=distance(...)
         params["filter.geo"] = location_str
 
     if advanced_filter:
-        # e.g. 'AREA[StartDate]2022'
         params["filter.advanced"] = advanced_filter
 
-    # If user wants certain fields only
-    # e.g. fields=["NCTId","BriefTitle","HasResults"]
     if fields and len(fields) > 0:
         params["fields"] = ",".join(fields)
 
-    # Sorting, e.g. sort=["@relevance","LastUpdatePostDate:desc"]
-    # The docs say we can pass multiple sort parameters.
     if sort:
-        # We can pass them as repeated &sort= in the URL or as a single comma-separated
-        # According to the doc, a list is acceptable with multiple query param values.
-        # We'll just comma-separate them:
         params["sort"] = ",".join(sort)
 
-    # Debug
-    print(f"[DEBUG fetch_raw_data] GET {API_BASE_URL}/studies with params:", params)
+    logger.debug(f"fetch_raw_data | GET {API_BASE_URL}/studies with params={params}")
 
     try:
         response = requests.get(f"{API_BASE_URL}/studies", params=params, timeout=30)
-        response.raise_for_status()
+        _handle_errors(response)
         data = response.json()
+        logger.debug(f"fetch_raw_data | Retrieved {len(data.get('studies', []))} studies.")
         return data
-    except requests.exceptions.RequestException as err:
-        print("[ERROR fetch_raw_data]", err)
-        raise
+    except requests.RequestException:
+        logger.exception("[ERROR fetch_raw_data] Unhandled request exception.")
+        raise HTTPException(status_code=500, detail="Failed to fetch raw data.")
 
-# -----------------------------------------------------------------------------
-# Single Study
-# -----------------------------------------------------------------------------
-
+@logger.catch
 def fetch_single_study(nct_id: str, fields: Optional[List[str]] = None) -> Dict[str, Any]:
     """
     Fetch details for a single study by NCT ID from the v2 API.
-    :param nct_id: e.g. "NCT01234567"
-    :param fields: optional list of fields to retrieve (e.g. "resultsSection")
-    :return: The JSON dictionary representing the single study.
     """
-    params = {
-        "format": "json",
-    }
-
+    params = {"format": "json"}
     if fields and len(fields) > 0:
         params["fields"] = ",".join(fields)
 
     url = f"{API_BASE_URL}/studies/{nct_id}"
-    print(f"[DEBUG fetch_single_study] GET {url} with params:", params)
+    logger.debug(f"fetch_single_study | GET {url} with params={params}")
 
     try:
         response = requests.get(url, params=params, timeout=30)
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as err:
-        print("[ERROR fetch_single_study]", err)
-        raise
+        _handle_errors(response)
+        data = response.json()
+        logger.debug(f"fetch_single_study | Retrieved data for NCT ID={nct_id}")
+        return data
+    except requests.RequestException:
+        logger.exception("[ERROR fetch_single_study] Unhandled request exception.")
+        raise HTTPException(status_code=500, detail="Failed to fetch single study.")
 
-# -----------------------------------------------------------------------------
-# Additional Endpoints (Enums, Search Areas, Stats)
-# -----------------------------------------------------------------------------
-
+@logger.catch
 def fetch_study_enums() -> List[Dict[str, Any]]:
     """
-    GET /studies/enums
-    Returns an array of enum types and their possible values.
-    Example usage: to see all possible "Phase" or "OverallStatus" enumerations.
+    Fetch all enumerations from the v2 API.
     """
     url = f"{API_BASE_URL}/studies/enums"
-    print(f"[DEBUG fetch_study_enums] GET {url}")
+    logger.debug(f"fetch_study_enums | GET {url}")
+
     try:
         response = requests.get(url, timeout=30)
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as err:
-        print("[ERROR fetch_study_enums]", err)
-        raise
+        _handle_errors(response)
+        data = response.json()
+        logger.debug(f"fetch_study_enums | Retrieved {len(data)} enums.")
+        return data
+    except requests.RequestException:
+        logger.exception("[ERROR fetch_study_enums] Unhandled request exception.")
+        raise HTTPException(status_code=500, detail="Failed to fetch study enums.")
 
+@logger.catch
 def fetch_search_areas() -> List[Dict[str, Any]]:
     """
-    GET /studies/search-areas
-    Returns search doc areas, with param, name, etc.
+    Fetch all search areas from the v2 API.
     """
     url = f"{API_BASE_URL}/studies/search-areas"
-    print(f"[DEBUG fetch_search_areas] GET {url}")
+    logger.debug(f"fetch_search_areas | GET {url}")
+
     try:
         response = requests.get(url, timeout=30)
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as err:
-        print("[ERROR fetch_search_areas]", err)
-        raise
+        _handle_errors(response)
+        data = response.json()
+        logger.debug(f"fetch_search_areas | Retrieved {len(data)} search areas.")
+        return data
+    except requests.RequestException:
+        logger.exception("[ERROR fetch_search_areas] Unhandled request exception.")
+        raise HTTPException(status_code=500, detail="Failed to fetch search areas.")
 
+@logger.catch
 def fetch_field_values(fields: List[str], field_types: Optional[List[str]] = None) -> List[Dict[str, Any]]:
     """
-    GET /stats/field/values
-    Return top values, missingStudyCount, etc. for certain fields.
-
-    :param fields: list of piece names or field paths, e.g. ["Condition","InterventionName"]
-    :param field_types: optional list of types like ["ENUM","BOOLEAN"].
+    Fetch field values statistics from the v2 API.
     """
     url = f"{API_BASE_URL}/stats/field/values"
-    params = {}
-    # param "fields" can be repeated or comma-separated
-    # We'll do comma-separated:
-    params["fields"] = ",".join(fields)
+    params = {"fields": ",".join(fields)}
 
     if field_types:
-        # Also comma-separate
         params["types"] = ",".join(field_types)
 
-    print(f"[DEBUG fetch_field_values] GET {url} params:", params)
+    logger.debug(f"fetch_field_values | GET {url} with params={params}")
+
     try:
         response = requests.get(url, params=params, timeout=30)
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as err:
-        print("[ERROR fetch_field_values]", err)
-        raise
+        _handle_errors(response)
+        data = response.json()
+        logger.debug(f"fetch_field_values | Retrieved field values for fields: {fields}")
+        return data
+    except requests.RequestException:
+        logger.exception("[ERROR fetch_field_values] Unhandled request exception.")
+        raise HTTPException(status_code=500, detail="Failed to fetch field values.")
 
+@logger.catch
 def fetch_study_sizes() -> Dict[str, Any]:
     """
-    GET /stats/size
-    Returns study JSON size statistics, including average, largestStudies, etc.
+    Fetch study sizes statistics from the v2 API.
     """
     url = f"{API_BASE_URL}/stats/size"
-    print(f"[DEBUG fetch_study_sizes] GET {url}")
+    logger.debug(f"fetch_study_sizes | GET {url}")
+
     try:
         response = requests.get(url, timeout=30)
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as err:
-        print("[ERROR fetch_study_sizes]", err)
-        raise
+        _handle_errors(response)
+        data = response.json()
+        logger.debug("fetch_study_sizes | Retrieved study sizes statistics.")
+        return data
+    except requests.RequestException:
+        logger.exception("[ERROR fetch_study_sizes] Unhandled request exception.")
+        raise HTTPException(status_code=500, detail="Failed to fetch study sizes.")
 
-# -----------------------------------------------------------------------------
-# Transformers / Cleaners
-# -----------------------------------------------------------------------------
-
+@logger.catch
 def clean_and_transform_data(raw_json: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
-    From the 'raw_json' of /studies, produce a simplified list of dicts.
-    This is your existing function, but we can expand it to handle new fields.
+    Cleans and transforms raw JSON data into a list of dictionaries with relevant fields.
     """
     if "studies" not in raw_json:
+        logger.debug("clean_and_transform_data | No studies found in raw_json.")
         return []
 
     cleaned_data = []
@@ -227,19 +234,16 @@ def clean_and_transform_data(raw_json: Dict[str, Any]) -> List[Dict[str, Any]]:
         overall_status = status_module.get("overallStatus", "Unknown")
         has_results = study.get("hasResults", False)
 
-        # Example: parse enrollment
         enrollment_info = design_module.get("enrollmentInfo", {})
-        enrollment = enrollment_info.get("count", None)  # can be int or None
+        enrollment_count = enrollment_info.get("count", None)  # Changed to "enrollment_count"
 
-        # parse startDate
         start_date_struct = status_module.get("startDateStruct", {})
         start_date = start_date_struct.get("date")
 
-        # parse conditions
         conditions = conditions_module.get("conditions", [])
 
-        # skip if obviously invalid
         if nct_id == "N/A" or brief_title == "No Title":
+            logger.debug(f"clean_and_transform_data | Skipping study with nctId={nct_id}")
             continue
 
         cleaned_record = {
@@ -247,73 +251,112 @@ def clean_and_transform_data(raw_json: Dict[str, Any]) -> List[Dict[str, Any]]:
             "briefTitle": brief_title,
             "overallStatus": overall_status,
             "hasResults": has_results,
-            "enrollment": enrollment,
-            "startDate": start_date,
+            "enrollment_count": enrollment_count,  # Standardized key
+            "start_date": start_date,               # Consistent key naming
             "conditions": conditions
         }
 
         cleaned_data.append(cleaned_record)
 
-    print(f"[DEBUG clean_and_transform_data] returning {len(cleaned_data)} items.")
+    logger.debug(f"clean_and_transform_data | Returning {len(cleaned_data)} items.")
+    logger.info(f"clean_and_transform_data | Cleaned data: {cleaned_data}")
     return cleaned_data
 
-# Example: Parse participant flow (funnel) from a single-study JSON
+@logger.catch
 def parse_participant_flow(results_section: Dict[str, Any]) -> Dict[str, Any]:
     """
-    If the single-study JSON includes resultsSection.participantFlowModule,
-    parse it into a simpler funnel structure that also includes dropWithdraw data.
+    Parses the participant flow data from the results section.
     """
     flow_module = results_section.get("participantFlowModule", {})
     if not flow_module:
+        logger.debug("parse_participant_flow | No participantFlowModule found.")
         return {}
 
-    funnel_data = {}
     periods = flow_module.get("periods", [])
+    total_started, total_completed, total_dropped, drop_reasons = parse_periods(periods)
+
+    funnel_data = {
+        "totalStarted": total_started,
+        "totalCompleted": total_completed,
+        "totalDropped": total_dropped,
+        "dropReasons": drop_reasons
+    }
+
+    logger.debug(f"parse_participant_flow | Parsed participant flow: {funnel_data}")
+    return funnel_data
+
+def parse_periods(periods: List[Dict[str, Any]]) -> Tuple[int, int, int, Dict[str, int]]:
+    """
+    Parses periods to calculate totals for started, completed, and dropped participants.
+    """
     total_started = 0
     total_completed = 0
     total_dropped = 0
-    drop_reasons = {}  # e.g. {"Physician Decision": X, "Withdrawal by Subject": Y, ...}
+    drop_reasons = {}
 
     for period in periods:
-        # 1) Summation of participants from milestones
-        milestones = period.get("milestones", [])
-        for m in milestones:
-            achievements = m.get("achievements", [])
-            for a in achievements:
-                # convert to int
-                num_subjects_str = a.get("flowAchievementNumSubjects", "0")
-                try:
-                    num_subjects = int(num_subjects_str)
-                except:
-                    num_subjects = 0
+        started, completed = parse_milestones(period.get("milestones", []))
+        total_started += started
+        total_completed += completed
 
-                if m.get("type", "").upper() == "STARTED":
-                    total_started += num_subjects
-                elif m.get("type", "").upper() == "COMPLETED":
-                    total_completed += num_subjects
-                # optional: handle other milestone types if needed
+        dropped, reasons = parse_drop_withdraws(period.get("dropWithdraws", []))
+        total_dropped += dropped
+        for reason, count in reasons.items():
+            drop_reasons[reason] = drop_reasons.get(reason, 0) + count
 
-        # 2) Summation from dropWithdraw
-        drop_withdraws = period.get("dropWithdraws", [])
-        for dw in drop_withdraws:
-            reason_type = dw.get("type", "Unknown")
-            reasons_list = dw.get("reasons", [])
-            reason_sum = 0
-            for r in reasons_list:
-                num_str = r.get("numSubjects", "0")
-                try:
-                    num_val = int(num_str)
-                except:
-                    num_val = 0
+    return total_started, total_completed, total_dropped, drop_reasons
 
-                reason_sum += num_val
-                total_dropped += num_val
-            drop_reasons[reason_type] = drop_reasons.get(reason_type, 0) + reason_sum
+def parse_milestones(milestones: List[Dict[str, Any]]) -> Tuple[int, int]:
+    """
+    Parses milestones to calculate started and completed participants.
+    """
+    total_started = 0
+    total_completed = 0
 
-    # Summarize
-    funnel_data["totalStarted"] = total_started
-    funnel_data["totalCompleted"] = total_completed
-    funnel_data["totalDropped"] = total_dropped
-    funnel_data["dropReasons"] = drop_reasons
+    for milestone in milestones:
+        for achievement in milestone.get("achievements", []):
+            num_val = parse_num_subjects(achievement.get("flowAchievementNumSubjects", "0"))
+            milestone_type = milestone.get("type", "").upper()
+            if milestone_type == "STARTED":
+                total_started += num_val
+            elif milestone_type == "COMPLETED":
+                total_completed += num_val
 
-    return funnel_data
+    return total_started, total_completed
+
+def parse_drop_withdraws(drop_withdraws: List[Dict[str, Any]]) -> Tuple[int, Dict[str, int]]:
+    """
+    Parses dropWithdraws to calculate total dropped participants and reasons.
+    """
+    total_dropped = 0
+    drop_reasons = {}
+
+    for drop_withdraw in drop_withdraws:
+        reason_type = drop_withdraw.get("type", "Unknown")
+        reasons = drop_withdraw.get("reasons", [])
+        reason_sum = sum(parse_num_subjects(reason.get("numSubjects", "0")) for reason in reasons)
+        total_dropped += reason_sum
+        drop_reasons[reason_type] = drop_reasons.get(reason_type, 0) + reason_sum
+
+    return total_dropped, drop_reasons
+
+def parse_num_subjects(num_str: str) -> int:
+    """
+    Parses the number of subjects from a string. Returns 0 if parsing fails.
+    """
+    try:
+        return int(num_str)
+    except ValueError:
+        logger.warning(f"parse_num_subjects | Invalid number of subjects: {num_str}")
+        return 0
+
+
+
+def analyze_enrollment_data(cleaned_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+    df = pd.DataFrame(cleaned_data)
+    enrollment_stats = {
+        "average_enrollment": df['enrollment_count'].mean(),
+        "total_enrollment": df['enrollment_count'].sum(),
+        "enrollment_distribution": df['enrollment_count'].value_counts().to_dict()
+    }
+    return enrollment_stats
