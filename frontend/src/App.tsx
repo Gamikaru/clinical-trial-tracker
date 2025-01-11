@@ -6,8 +6,8 @@
 
 import React from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import Footer from "./components/Footer";
-import Navbar from "./components/Navbar";
+import Footer from "./components/layout/Footer";
+import Navbar from "./components/layout/Navbar";
 
 // Import pages
 import AdvancedSearchPage from "./pages/AdvancedSearchPage";

@@ -8,7 +8,7 @@
 import { motion } from "framer-motion";
 import React from "react";
 import { LargestStudy } from "../types";
-import SummaryCard from "./SummaryCard";
+import SummaryCard from "./shared/SummaryCard";
 
 interface StudyStatisticsProps {
   /** Total number of studies */

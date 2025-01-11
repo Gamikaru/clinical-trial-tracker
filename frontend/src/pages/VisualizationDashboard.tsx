@@ -29,9 +29,9 @@ import useTrials from "../hooks/useTrials";
 import { motion } from "framer-motion";
 // import StudyMetadataTable from "../components/StudyMetadataTable";
 import StudyStatistics from "../components/StudyStatistics";
-import SummaryCards from "../components/SummaryCards";
-import TopConditionsChart from "../components/TopCOnditionsChart"; // <-- Ensure your file is EXACTLY named "TopConditionsChart.tsx"
-import TrialsByStatusChart from "../components/TrialsByStatusChart";
+import TopConditionsChart from "../components/charts/TopCOnditionsChart"; // <-- Ensure your file is EXACTLY named "TopConditionsChart.tsx"
+import TrialsByStatusChart from "../components/charts/TrialsByStatusChart";
+import SummaryCards from "../components/shared/SummaryCards";
 
 // Register Chart.js components
 ChartJS.register(
