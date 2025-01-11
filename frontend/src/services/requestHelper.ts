@@ -13,7 +13,7 @@
 import api from "./api";
 
 /**
- * A generic GET request helper using your configured axios instance.
+ * A generic GET request helper using  configured axios instance.
  * @param {string} url - The endpoint to call, e.g. "/studies"
  * @param {Record<string, any>} params - Query parameters or filters
  */

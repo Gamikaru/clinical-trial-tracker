@@ -5,13 +5,13 @@
  * and parse relevant fields, including the resultsSection (participantFlowModule).
  *
  * This version is updated to include the data needed for charts/visualizations in
- * your TrialDetailsPage results tab.
+ *  TrialDetailsPage results tab.
  */
 
 import { useEffect, useState } from "react";
 import api from "../services/api";
 
-// Extend or reuse your existing definitions
+// Extend or reuse  existing definitions
 interface Eligibility {
     criteria?: string;
 }
@@ -69,7 +69,7 @@ const useTrialDetails = (id: string) => {
         console.debug(`Fetching trial details for ID: ${id}`);
 
         try {
-            // GET /studies/{nctId} with the 'format=json' and your chosen fields
+            // GET /studies/{nctId} with the 'format=json' and  chosen fields
             const response = await api.get(`/studies/${id}`, {
                 params: {
                     format: "json",

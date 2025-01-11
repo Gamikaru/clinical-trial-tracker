@@ -1,10 +1,3 @@
-/**
- * src/hooks/useTrials.ts
- *
- * Updated to include fetchNextPage and resetResults methods, plus dedup logic
- * to avoid duplicate keys in the React list.
- */
-
 import { useEffect, useState } from "react";
 import api from "../services/api";
 
@@ -40,7 +33,7 @@ const useTrials = (initialParams: any): UseTrialsReturn => {
     // Merge user-provided params with defaults
     const [params, setParams] = useState<any>({
         format: "json",
-        pageSize: initialParams?.pageSize ?? 50,
+        pageSize: initialParams?.pageSize ?? 1000, // Increased pageSize
         fields:
             "NCTId," +
             "protocolSection.identificationModule.orgStudyIdInfo.id," +

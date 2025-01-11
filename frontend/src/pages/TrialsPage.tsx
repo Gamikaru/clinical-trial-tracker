@@ -119,7 +119,7 @@ const TrialsPage: React.FC = () => {
             </div>
 
             {filteredTrials.length === 0 ? (
-                <p className="text-center text-[#C4C4C4]">No trials match your search.</p>
+                <p className="text-center text-[#C4C4C4]">No trials match  search.</p>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredTrials.map((trial) => (

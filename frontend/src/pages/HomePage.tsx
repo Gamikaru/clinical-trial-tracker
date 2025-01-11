@@ -22,7 +22,7 @@ const HomePage: React.FC = () => {
         </h1>
         <p className="mb-6 text-lg text-gray-600">
           Explore clinical trial data, visualize insights, manage participants,
-          and save your favorite trials.
+          and save  favorite trials.
         </p>
         <div className="flex flex-col sm:flex-row justify-center gap-4">
           <Link to="/trials" className="btn btn-primary">

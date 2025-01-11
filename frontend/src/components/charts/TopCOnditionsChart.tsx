@@ -1,13 +1,8 @@
-/**
- * src/components/TopConditionsChart.tsx
- *
- * A pie chart to visualize top 10 conditions. Includes a fade-in effect.
- */
-
 import { ChartData, ChartOptions } from "chart.js";
+import "chart.js/auto";
 import { motion } from "framer-motion";
 import React from "react";
-import { Pie } from "react-chartjs-2"; // spell-checker: disable-line
+import { Pie } from "react-chartjs-2";
 
 interface TopConditionsChartProps {
   data?: ChartData<"pie", number[], string>;
@@ -28,7 +23,12 @@ const TopConditionsChart: React.FC<TopConditionsChartProps> = ({
       <h2 className="text-2xl font-semibold mb-4">Top 10 Conditions</h2>
       {data ? (
         <div className="relative" style={{ height: "400px" }}>
-          <Pie data={data} options={options} />
+          <Pie
+            data={data}
+            options={options}
+            redraw
+            datasetIdKey="topConditionsPie"
+          />
         </div>
       ) : (
         <p>No condition data available.</p>

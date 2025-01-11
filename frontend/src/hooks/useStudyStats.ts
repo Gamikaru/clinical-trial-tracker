@@ -1,9 +1,3 @@
-/**
- * hooks/useStudyStats.ts
- *
- * Updated so we read `totalStudies` from the JSON and store it in `totalCount`.
- * That way, your component code (which expects stats.totalCount) will now display the correct number.
- */
 import { useEffect, useState } from "react";
 import api from "../services/api";
 

@@ -1,0 +1,12 @@
+# docker-compose.yml at the root of your_project/
+version: '3.9'
+
+services:
+  clinical_trials_api:
+    build: .
+    container_name: clinical_trials_api_container
+    ports:
+      - "8000:8000"
+    # If needed, environment variables can go here:
+    # environment:
+    #   - ANY_ENV_VAR=some_value

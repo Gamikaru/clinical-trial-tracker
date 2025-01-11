@@ -50,7 +50,7 @@
 //               value={email}
 //               onChange={(e) => setEmail(e.target.value)}
 //               className="input input-bordered w-full"
-//               placeholder="Enter your email"
+//               placeholder="Enter  email"
 //             />
 //           </div>
 //           <div>
@@ -63,7 +63,7 @@
 //               value={password}
 //               onChange={(e) => setPassword(e.target.value)}
 //               className="input input-bordered w-full"
-//               placeholder="Enter your password"
+//               placeholder="Enter  password"
 //             />
 //           </div>
 //           <button

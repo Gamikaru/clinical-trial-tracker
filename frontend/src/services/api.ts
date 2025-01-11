@@ -1,6 +1,6 @@
 import axios from "axios";
 
-// Create the axios instance with a baseURL from your .env or fallback
+// Create the axios instance with a baseURL from  .env or fallback
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL || "https://clinicaltrials.gov/api/v2",
     headers: {

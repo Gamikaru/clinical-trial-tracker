@@ -4,7 +4,7 @@
 //  * AuthService handles authentication-related API interactions.
 //  */
 // const authApi = axios.create({
-//   baseURL: import.meta.env.VITE_API_URL || "https://your-auth-api.com",
+//   baseURL: import.meta.env.VITE_API_URL || "https://-auth-api.com",
 //   headers: {
 //     "Content-Type": "application/json",
 //   },

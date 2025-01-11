@@ -1,10 +1,5 @@
-/**
- * src/components/TrialsByStatusChart.tsx
- *
- * A bar chart to visualize trials grouped by status. Includes fade-in effect.
- */
-
 import { ChartData, ChartOptions } from "chart.js";
+import "chart.js/auto";
 import { motion } from "framer-motion";
 import React from "react";
 import { Bar } from "react-chartjs-2";
@@ -28,7 +23,12 @@ const TrialsByStatusChart: React.FC<TrialsByStatusChartProps> = ({
       <h2 className="text-2xl font-semibold mb-4">Trials by Status</h2>
       {data?.datasets?.length ? (
         <div className="relative" style={{ height: "400px" }}>
-          <Bar data={data} options={options} />
+          <Bar
+            data={data}
+            options={options}
+            redraw
+            datasetIdKey="trialsByStatusBar"
+          />
         </div>
       ) : (
         <p>No status data available.</p>
