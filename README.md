@@ -15,7 +15,7 @@ This is a rough work-in-progress front-end to visualize and explore public clini
 • Better error handling and performance optimizations.
 • Additional filtering and search logic for more detailed trial data.
 
-
+#### I have built out some of the backend as this project was originally intended to be a full-stack application. However, I have decided to focus on the front-end, utilizing the public API provided by the clinical trial data source for now.
 ---
 This project is only a personal test build. Data and code are for demonstration.
 
