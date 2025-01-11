@@ -1,8 +1,23 @@
-# TrialTracker Frontend
 
-## Project Overview
+# TrialTracker
 
-TrialTracker is the frontend component of a clinical trial management application. It allows users to view, manage, and visualize clinical trial data using public APIs. Built with React and TypeScript, the frontend emphasizes a user-friendly interface, data visualization with Chart.js, and responsive design using Tailwind CSS and DaisyUI.
+This is a rough work-in-progress front-end to visualize and explore public clinical trial data. The app uses React, TypeScript, TailwindCSS, DaisyUI, and Chart.js. It’s being published for demonstration, with many planned features still unfinished.
+
+## Motivation
+• Created to practice data visualization and searching across trial datasets using Typescript
+
+## Current Structure
+• Organized into /src/components, /src/hooks, /src/pages, and /services for modular development.
+• Incorporates charts, a dashboard, advanced search (not yet working), and a minimal participant manager login portal (unconnected).
+
+## Planned Enhancements
+• Expand chart coverage for more data points.
+• Better error handling and performance optimizations.
+• Additional filtering and search logic for more detailed trial data.
+
+
+---
+This project is only a personal test build. Data and code are for demonstration.
 
 ## Technologies Used
 
@@ -16,7 +31,6 @@ TrialTracker is the frontend component of a clinical trial management applicatio
 ## Directory Structure
 
 ```plaintext
-root@GMKRU:/home/gamikarudev/projects/fullstack/trial-tracker/frontend# tree -I "node*"
 .
 ├── index.html
 ├── package-lock.json
@@ -26,12 +40,16 @@ root@GMKRU:/home/gamikarudev/projects/fullstack/trial-tracker/frontend# tree -I 
 ├── src
 │   ├── App.tsx
 │   ├── components
-│   │   ├── Dashboard.tsx
 │   │   ├── Footer.tsx
 │   │   ├── Login.tsx
+│   │   ├── MetadataFields.tsx
 │   │   ├── Navbar.tsx
-│   │   ├── Pagination.tsx
-│   │   └── ParticipantForm.tsx
+│   │   ├── StudyMetadataTable.tsx
+│   │   ├── StudyStatistics.tsx
+│   │   ├── SummaryCard.tsx
+│   │   ├── SummaryCards.tsx
+│   │   ├── TopConditionsChart.tsx
+│   │   └── TrialsByStatusChart.tsx
 │   ├── hooks
 │   │   ├── useAuth.ts
 │   │   ├── useEnums.ts
@@ -47,7 +65,9 @@ root@GMKRU:/home/gamikarudev/projects/fullstack/trial-tracker/frontend# tree -I 
 │   │   └── useVersion.ts
 │   ├── index.tsx
 │   ├── pages
+│   │   ├── AdvancedSearchPage.tsx
 │   │   ├── HomePage.tsx
+│   │   ├── NotFoundPage.tsx
 │   │   ├── ParticipantManagementPage.tsx
 │   │   ├── SavedTrialsPage.tsx
 │   │   ├── TrialDetailsPage.tsx
@@ -59,6 +79,10 @@ root@GMKRU:/home/gamikarudev/projects/fullstack/trial-tracker/frontend# tree -I 
 │   │   └── requestHelper.ts
 │   ├── styles
 │   │   └── App.css
+│   ├── types
+│   │   └── index.ts
+│   ├── utils
+│   │   └── metadataDescriptions.ts
 │   └── vite-env.d.ts
 ├── tailwind.config.js
 ├── test
@@ -66,7 +90,7 @@ root@GMKRU:/home/gamikarudev/projects/fullstack/trial-tracker/frontend# tree -I 
 ├── tsconfig.json
 └── vite.config.mjs
 
-9 directories, 39 files
+11 directories, 47 files
 ```
 
 ## Setup Instructions

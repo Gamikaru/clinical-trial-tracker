@@ -14,7 +14,6 @@ import AdvancedSearchPage from "./pages/AdvancedSearchPage";
 import HomePage from "./pages/HomePage";
 import NotFoundPage from "./pages/NotFoundPage";
 import ParticipantManagementPage from "./pages/ParticipantManagementPage";
-import SavedTrialsPage from "./pages/SavedTrialsPage";
 import TrialDetailsPage from "./pages/TrialDetailsPage";
 import TrialsPage from "./pages/TrialsPage";
 import VisualizationDashboard from "./pages/VisualizationDashboard";
@@ -35,7 +34,7 @@ const App: React.FC = () => {
             <Route path="/trials/:id" element={<TrialDetailsPage />} />
             <Route path="/dashboard" element={<VisualizationDashboard />} />
             <Route path="/participants" element={<ParticipantManagementPage />} />
-            <Route path="/saved-trials" element={<SavedTrialsPage />} />
+            {/* <Route path="/saved-trials" element={<SavedTrialsPage />} /> */}
 
             {/* (Optional) Advanced Search */}
             <Route path="/advanced-search" element={<AdvancedSearchPage />} />

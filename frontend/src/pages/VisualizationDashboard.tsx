@@ -27,7 +27,7 @@ import useTrialMetadata from "../hooks/useTrialMetaData";
 import useTrials from "../hooks/useTrials";
 
 import { motion } from "framer-motion";
-import StudyMetadataTable from "../components/StudyMetadataTable";
+// import StudyMetadataTable from "../components/StudyMetadataTable";
 import StudyStatistics from "../components/StudyStatistics";
 import SummaryCards from "../components/SummaryCards";
 import TopConditionsChart from "../components/TopCOnditionsChart"; // <-- Ensure your file is EXACTLY named "TopConditionsChart.tsx"
@@ -98,22 +98,18 @@ const VisualizationDashboard: React.FC = () => {
             label: "# of Trials",
             data: Object.values(statusCounts),
             backgroundColor: [
-              "rgba(54, 162, 235, 0.6)",
-              "rgba(75, 192, 192, 0.6)",
-              "rgba(255, 206, 86, 0.6)",
-              "rgba(255, 99, 132, 0.6)",
-              "rgba(153, 102, 255, 0.6)",
-              "rgba(255, 159, 64, 0.6)",
-              "rgba(199, 199, 199, 0.6)",
+              "#6A9EFD",
+              "#434B56",
+              "#C4C4C4",
+              "#4A6E9D",
+              "#98DEDE",
             ],
             borderColor: [
-              "rgba(54, 162, 235, 1)",
-              "rgba(75, 192, 192, 1)",
-              "rgba(255, 206, 86, 1)",
-              "rgba(255, 99, 132, 1)",
-              "rgba(153, 102, 255, 1)",
-              "rgba(255, 159, 64, 1)",
-              "rgba(199, 199, 199, 1)",
+              "#6A9EFD",
+              "#434B56",
+              "#C4C4C4",
+              "#4A6E9D",
+              "#98DEDE",
             ],
             borderWidth: 1,
           },
@@ -146,16 +142,16 @@ const VisualizationDashboard: React.FC = () => {
               label: "# of Trials",
               data: top10.map(([, count]) => count),
               backgroundColor: [
-                "#FF6384",
-                "#36A2EB",
-                "#FFCE56",
-                "#4BC0C0",
-                "#9966FF",
-                "#FF9F40",
-                "#C9CBCF",
-                "#FF6384",
-                "#36A2EB",
-                "#FFCE56",
+                "#6A9EFD",
+                "#434B56",
+                "#C4C4C4",
+                "#4A6E9D",
+                "#98DEDE",
+                "#6A9EFD",
+                "#434B56",
+                "#C4C4C4",
+                "#4A6E9D",
+                "#98DEDE",
               ],
               hoverOffset: 4,
             },
@@ -187,7 +183,7 @@ const VisualizationDashboard: React.FC = () => {
               label: "# of Trials Updated",
               data: sortedVals,
               fill: false,
-              borderColor: "rgba(75,192,192,1)",
+              borderColor: "#4A6E9D",
               tension: 0.1,
             },
           ],
@@ -288,7 +284,7 @@ const VisualizationDashboard: React.FC = () => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.8 }}
     >
-      <h1 className="text-4xl font-bold mb-8 text-center text-primary">
+      <h1 className="text-4xl font-bold mb-8 text-center text-gray-800">
         Visualization Dashboard
       </h1>
       <p className="text-center text-gray-600 mb-8">
@@ -360,7 +356,7 @@ const VisualizationDashboard: React.FC = () => {
               viewport={{ once: true }}
               transition={{ duration: 0.7 }}
             >
-              <h2 className="text-2xl font-semibold text-center">
+              <h2 className="text-2xl font-semibold text-center text-gray-800">
                 Monthly Update Trend
               </h2>
               <div style={{ height: "400px" }}>
@@ -377,7 +373,7 @@ const VisualizationDashboard: React.FC = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.7 }}
           >
-            <StudyMetadataTable metadata={metadata || []} />
+            {/* <StudyMetadataTable metadata={metadata || []} /> */}
           </motion.div>
 
           {/* 6) Additional Study Statistics */}

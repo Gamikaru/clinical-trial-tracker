@@ -1,7 +1,8 @@
 /**
  * src/hooks/useTrials.ts
  *
- * Updated to include fetchNextPage and resetResults methods.
+ * Updated to include fetchNextPage and resetResults methods, plus dedup logic
+ * to avoid duplicate keys in the React list.
  */
 
 import { useEffect, useState } from "react";
@@ -54,7 +55,8 @@ const useTrials = (initialParams: any): UseTrialsReturn => {
     });
 
     /**
-     * refetch: let external code override or update params.
+     * refetch: let external code override or update params
+     * and clear existing data so we start fresh.
      */
     const refetch = (additionalParams?: any) => {
         setTrials([]);
@@ -74,20 +76,30 @@ const useTrials = (initialParams: any): UseTrialsReturn => {
         try {
             const finalParams = { ...params, ...extraParams };
             console.debug("useTrials: calling GET /studies with params:", finalParams);
+
             const response = await api.get("/studies", { params: finalParams });
             const data = response.data;
 
             if (data && Array.isArray(data.studies)) {
-                const transformed = data.studies.map((study: any) => {
+                // Transform raw data to local shape
+                const newTrials = data.studies.map((study: any) => {
                     const nctId = study?.protocolSection?.identificationModule?.nctId || "";
-                    const orgStudyId = study?.protocolSection?.identificationModule?.orgStudyIdInfo?.id || "";
-                    const secIdInfos = study?.protocolSection?.identificationModule?.secondaryIdInfos || [];
+                    const orgStudyId =
+                        study?.protocolSection?.identificationModule?.orgStudyIdInfo?.id || "";
+                    const secIdInfos =
+                        study?.protocolSection?.identificationModule?.secondaryIdInfos || [];
                     const secondaryIds = secIdInfos.map((sec: any) => sec?.id || "");
-                    const briefTitle = study?.protocolSection?.identificationModule?.briefTitle || "";
-                    const overallStatus = study?.protocolSection?.statusModule?.overallStatus || "UNKNOWN";
-                    const startDate = study?.protocolSection?.statusModule?.startDateStruct?.date || null;
-                    const lastUpdatePostDate = study?.protocolSection?.statusModule?.lastUpdatePostDateStruct?.date || null;
-                    const conditionList = study?.protocolSection?.conditionsModule?.conditions || [];
+                    const briefTitle =
+                        study?.protocolSection?.identificationModule?.briefTitle || "";
+                    const overallStatus =
+                        study?.protocolSection?.statusModule?.overallStatus || "UNKNOWN";
+                    const startDate =
+                        study?.protocolSection?.statusModule?.startDateStruct?.date || null;
+                    const lastUpdatePostDate =
+                        study?.protocolSection?.statusModule?.lastUpdatePostDateStruct?.date ||
+                        null;
+                    const conditionList =
+                        study?.protocolSection?.conditionsModule?.conditions || [];
                     const condition = conditionList[0] || "No Condition Info";
                     const hasResults = study?.hasResults || false;
 
@@ -104,7 +116,18 @@ const useTrials = (initialParams: any): UseTrialsReturn => {
                     };
                 });
 
-                setTrials((prev) => [...prev, ...transformed]);
+                // Deduplicate by nctId (important if next page re-sends duplicates)
+                setTrials((prev) => {
+                    const merged = [...prev, ...newTrials];
+                    const uniqueByNCT = merged.reduce((acc, trial) => {
+                        if (!acc.some((t: Trial) => t.nctId === trial.nctId)) {
+                            acc.push(trial);
+                        }
+                        return acc;
+                    }, [] as Trial[]);
+                    return uniqueByNCT;
+                });
+
                 setNextPageToken(data.nextPageToken || null);
             } else {
                 throw new Error("Data did not contain a valid 'studies' array.");
@@ -117,6 +140,7 @@ const useTrials = (initialParams: any): UseTrialsReturn => {
                 console.error("Error fetching trials:", err);
                 setError(err.message || "Failed to fetch trials.");
             }
+            // Clear trials if there's an error
             setTrials([]);
         } finally {
             setLoading(false);
@@ -124,7 +148,7 @@ const useTrials = (initialParams: any): UseTrialsReturn => {
     };
 
     /**
-     * fetchNextPage - load the next page of trials
+     * fetchNextPage - load the next page of trials if nextPageToken is present
      */
     const fetchNextPage = () => {
         if (nextPageToken) {
@@ -140,12 +164,21 @@ const useTrials = (initialParams: any): UseTrialsReturn => {
         setNextPageToken(null);
     };
 
+    // On mount or whenever params changes, fetch the first page
     useEffect(() => {
         fetchTrials();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [JSON.stringify(params)]);
 
-    return { trials, loading, error, nextPageToken, refetch, fetchNextPage, resetResults };
+    return {
+        trials,
+        loading,
+        error,
+        nextPageToken,
+        refetch,
+        fetchNextPage,
+        resetResults,
+    };
 };
 
 export default useTrials;
