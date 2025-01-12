@@ -1,82 +1,4 @@
-Below is a **comprehensive review** of your current codebase, a summary of **major issues** (if any) found, and suggestions for further **manipulation/transformations** of clinical trial data. In addition, you'll find an **updated README** with a clear **directory structure**, **example URLs** to test in the browser, and a **brief description of each endpoint** including the internal functions that power them.
 
----
-
-## 1. Comprehensive Review of Your Code
-
-### 1.1 Architecture & Organization
-- **Separation of Concerns**: You’ve done an excellent job organizing code into different modules:
-  - `api_clients` to handle external API calls
-  - `data_processing` for cleaning and transforming data
-  - `analysis` for more specialized data manipulations (e.g., enrollment analysis)
-  - `api/routers` for routing logic
-  - `utils` for cross-cutting concerns (rate limiting, error handling)
-  - `tests` for your unit/integration tests
-
-  This is clear, modular, and easy to extend.
-
-- **Multiple Routers** under `services.api.routers`:
-  Each router focuses on a specific domain (e.g., `geo_stats`, `time_stats`, `enums`). This is a best practice, making your code more maintainable.
-
-### 1.2 Logging & Error Handling
-- **Loguru** usage: Well-integrated. You remove the default logger, then configure Loguru to write to both `sys.stdout` and `app.log`. This ensures structured logs in production.
-- **Structured Error Handling**:
-  - `_handle_errors` in `utils.error_handling` gracefully transforms `requests` errors into `HTTPException`s.
-  - The `check_rate_limit` function uses a token-bucket strategy—also logs a warning on hitting the rate limit. Great approach for controlling traffic.
-
-### 1.3 Data Fetching & Transformation
-- **Request Caching** (`requests_cache`): You have set up a 5-minute in-memory cache to minimize repeated calls to the ClinicalTrials.gov API. This is beneficial for performance.
-- **Advanced Filtering** using Essie expressions: You combine conditions with `AND` or advanced filters like `AREA[LastUpdatePostDate]RANGE[...]`.
-- **Data Cleaning**:
-  - Your `clean_and_transform_data` function ensures each study has an `enrollment_count` (default 0 if missing), `start_date`, `conditions`, etc.
-  - The use of Pandas in some endpoints (e.g., `get_enrollment_stats`) is a powerful way to do further analysis.
-
-### 1.4 Rate Limiting
-- **Simple Token Bucket** with `REFILL_RATE` and `MAX_TOKENS`:
-  - This approach is valid for low to moderate scale.
-  - For production scenarios with multiple instances or containers, consider an external store (like Redis).
-
-### 1.5 Domain-Specific Modules
-- **`analysis.enrollment_analysis`**:
-  - `analyze_enrollment_data`, `calculate_enrollment_rates`—these transform the data for domain-specific insights.
-  - Very useful if you want to display aggregated info on the front end (e.g., average enrollment, distribution).
-
-### 1.6 Testing
-- Multiple test files (e.g., `test_api.py`, `test_service.py`, `test_advanced_filters.py`) covering advanced filters, transformations, etc.
-- Usage of **`TestClient`** from FastAPI in `test_api.py` is standard and recommended.
-
----
-
-## 2. Major Issues (If Any) & Observations
-
-1. **Potential Overlapping Requests**: If you anticipate a high volume of requests with large `pageSize`, the memory usage (due to storing data in memory cache) could spike. Consider external caching or a smaller `pageSize` limit.
-2. **Pydantic Models**: You are using `GeoStatsQuery`. You might similarly define Pydantic request models for other query patterns (e.g., multi-conditions or bounding box filters) to standardize validation.
-3. **Large Data Handling**: If you have extremely large data results, you might want to stream the results or implement asynchronous processing (FastAPI can handle async, though the external requests library here is sync).
-
-Overall, there are no immediate critical flaws—just potential considerations for scaling and validation expansions.
-
----
-
-## 3. Further Manipulation/Transformations for Front End
-
-1. **Condition Co-Occurrence Matrix**
-   - You already collect multiple `conditions`. You can compute how often conditions appear together across studies and display a matrix or cluster in the front end.
-2. **Time-Series Trend**
-   - You have `/time-stats` endpoint which groups by `lastUpdatePostDate`. Extend it to also group by `startDateStruct` or `completionDateStruct` to track how many studies start or complete each month, potentially in chart form.
-3. **Location Heatmaps**
-   - With your `geo-stats` approach, you can go beyond counting by country. You could cluster by lat/lon in a grid and produce a heatmap for the front end.
-4. **Sponsor Analysis**
-   - If the sponsor name is available, aggregate top sponsors or sponsor classes for your front end.
-5. **Multi-Level Aggregation**
-   - For instance, show both by condition *and* by sponsor, or by condition *and* by trial phase. This helps front-end dashboards do drill-down analytics.
-
----
-
-## 4. Updated README with File Structure and Endpoint Details
-
-Below is a revised version of your **README** that incorporates your new file layout, example URLs, and a clearer explanation of each endpoint’s use and the underlying functions.
-
-```markdown
 # Clinical Trials API
 
 This repository is a **FastAPI** project that fetches, cleans, and serves data from [ClinicalTrials.gov API v2](https://clinicaltrials.gov/api/v2).
@@ -152,6 +74,7 @@ This repository is a **FastAPI** project that fetches, cleans, and serves data f
 │   │   └── routers
 │   │       ├── enums.py
 │   │       ├── enrollment_insights.py
+│   │       ├── enrollment_stats.py
 │   │       ├── enriched_studies.py
 │   │       ├── geo_stats.py
 │   │       ├── participant_flow.py
@@ -316,6 +239,21 @@ Below is a **brief** but **complete** list of important endpoints, how they migh
     - `[1] http://127.0.0.1:8000/api/enriched-studies/multi-conditions?conditions=cancer&conditions=diabetes`
     - `[2] http://127.0.0.1:8000/api/enriched-studies/multi-conditions?conditions=heart%20disease&page_size=3`
 
+1) Enrollment Stats
+- **GET /api/enrollment-stats**
+  - **Description**: Calculates and retrieves enrollment statistics across studies.
+  - **Functions**:
+    1. `check_rate_limit(client_ip)`
+    2. `fetch_raw_data(condition="cancer", page_size=100, page_token=...)`
+    3. `clean_and_transform_data(raw_data)`
+    4. `pd.DataFrame(all_data)`
+    5. `df['enrollment_count'].mean()`
+    6. `df['enrollment_count'].median()`
+    7. `df['enrollment_count'].quantile([...])`
+    8. `df['enrollment_count'].value_counts(bins=10)`
+  - **Example URLs**:
+    - `[1] [http://127.0.0.1:8000/api/enrollment-stats](http://127.0.0.1:8000/api/enrollment-stats)`
+
 ---
 
 ## Testing
@@ -332,16 +270,6 @@ pytest
 This will discover all tests in the `tests` directory (e.g. `test_api.py`, `test_service.py`, etc.).
 
 ---
-
-## Potential Front-End Integration
-
-Your front end could:
-- **Display Filtered Studies** in a table or map, using `GET /api/filtered-studies`.
-- **Plot Participant Flow** with funnel charts from `GET /api/study-results/participant-flow/{nct_id}`.
-- **Visualize Condition Distributions** from `GET /api/enriched-studies/multi-conditions`.
-- **Show Trends Over Time** with line or bar charts from `GET /api/time-stats`.
-
-The endpoints are RESTful, so any front-end (React, Vue, Angular) can `fetch` or `axios.get` from them and parse JSON results to display.
 
 ---
 
