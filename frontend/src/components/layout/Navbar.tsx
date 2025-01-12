@@ -57,6 +57,13 @@ const Navbar: React.FC = () => {
             Dashboard
           </Link>
           <Link
+            to="/geo-stats"
+            className="btn btn-ghost transition duration-300 ease-in-out transform hover:scale-105"
+          >
+            Geo Stats
+          </Link>
+
+          <Link
             to="/participants"
             className="btn btn-ghost transition duration-300 ease-in-out transform hover:scale-105"
           >

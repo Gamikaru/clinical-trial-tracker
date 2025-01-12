@@ -239,7 +239,7 @@ Below is a **brief** but **complete** list of important endpoints, how they migh
     - `[1] http://127.0.0.1:8000/api/enriched-studies/multi-conditions?conditions=cancer&conditions=diabetes`
     - `[2] http://127.0.0.1:8000/api/enriched-studies/multi-conditions?conditions=heart%20disease&page_size=3`
 
-1) Enrollment Stats
+### 12) Enrollment Stats
 - **GET /api/enrollment-stats**
   - **Description**: Calculates and retrieves enrollment statistics across studies.
   - **Functions**:

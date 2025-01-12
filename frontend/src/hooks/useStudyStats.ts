@@ -1,7 +1,7 @@
 /**
  * src/hooks/useStudyStats.ts
  *
- * Example to call GET /api/stats/size from your Python backend.
+ * Example: calls GET /api/stats/size from your local Python backend
  */
 
 import { useEffect, useState } from "react";

@@ -1,26 +1,21 @@
 /**
- * services/requestHelper.ts (Optional)
+ * services/requestHelper.ts
  *
- * Example file illustrating how you could wrap axios calls for additional
- * error handling, interceptors, or specialized logging. This is not mandatory.
- *
- * Usage example in  hooks:
- *    import { getRequest } from '../services/requestHelper';
- *    ...
- *    const response = await getRequest('/studies', { query: { cond: 'cancer' } });
+ * Optional: Illustrates how to wrap axios calls for additional error handling.
  */
 
 import api from "./api";
 
 /**
- * A generic GET request helper using  configured axios instance.
- * @param {string} url - The endpoint to call, e.g. "/studies"
- * @param {Record<string, any>} params - Query parameters or filters
+ * A generic GET request helper using the configured axios instance.
+ * @param {string} url - The endpoint to call (e.g. "/api/filtered-studies").
+ * @param {Record<string, any>} params - Query parameters or filters.
  */
 export async function getRequest(
   url: string,
   params: Record<string, any> = {}
 ) {
+  console.log("[getRequest] Making GET request to:", url, "with params:", params);
   const response = await api.get(url, { params });
   return response.data;
 }
@@ -33,10 +28,7 @@ export async function postRequest(
   data: Record<string, any> = {},
   params: Record<string, any> = {}
 ) {
+  console.log("[postRequest] Making POST request to:", url, "with data:", data);
   const response = await api.post(url, data, { params });
   return response.data;
 }
-
-/**
- * Similarly, you can define putRequest, deleteRequest, etc. as needed.
- */

@@ -1,7 +1,7 @@
 /**
  * src/pages/HomePage.tsx
  *
- * The landing page with improved styling and a welcoming motion.
+ * Minimal and modern welcome page.
  */
 
 import { motion } from "framer-motion";
@@ -22,7 +22,7 @@ const HomePage: React.FC = () => {
         </h1>
         <p className="mb-6 text-lg text-gray-600">
           Explore clinical trial data, visualize insights, manage participants,
-          and save  favorite trials.
+          and save favorite trials.
         </p>
         <div className="flex flex-col sm:flex-row justify-center gap-4">
           <Link to="/trials" className="btn btn-primary">

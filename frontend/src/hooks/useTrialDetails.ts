@@ -1,8 +1,7 @@
 /**
  * src/hooks/useTrialDetails.ts
  *
- * Fetch a single study from GET /api/studies/{nctId}?fields=...
- * The data is fetched from your local Python backend.
+ * Fetches data for a single trial from GET /api/studies/{nctId}.
  */
 
 import { useEffect, useState } from "react";
@@ -16,24 +15,25 @@ interface TrialDetails {
     description?: string;
     eligibility?: { criteria?: string };
     interventions?: string[];
-    resultsSection?: any; // or a typed object if you wish
+    resultsSection?: any; // or a more detailed shape
 }
 
 const useTrialDetails = (nctId: string) => {
     const [trial, setTrial] = useState<TrialDetails | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
 
     const fetchTrialDetails = async () => {
         if (!nctId) return;
         setLoading(true);
         setError(null);
-        console.log(`[useTrialDetails] Fetching /api/studies/${nctId}`);
+
         try {
-            // e.g. GET /api/studies/NCT04000165?fields=...
+            console.log("[useTrialDetails] GET /api/studies/", nctId);
             const response = await api.get(`/api/studies/${nctId}`, {
+                // example: request resultsSection
                 params: {
-                    fields: ["protocolSection.resultsSection"], // example optional fields
+                    fields: ["protocolSection.resultsSection"],
                 },
             });
             setTrial(response.data);

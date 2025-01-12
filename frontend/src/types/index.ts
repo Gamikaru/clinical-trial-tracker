@@ -1,4 +1,3 @@
-// filepath: /src/types/index.ts
 /**
  * src/types/index.ts
  *
@@ -11,44 +10,44 @@ import { ChartData } from "chart.js";
  * Represents a metadata field with its name, description, and type.
  */
 export interface MetadataField {
-    name: string;
-    description: string;
-    type: string;
+  name: string;
+  description: string;
+  type: string;
 }
 
 /**
  * Represents the largest study with its ID and size in bytes.
  */
 export interface LargestStudy {
-    id: string;
-    sizeBytes: number;
+  id: string;
+  sizeBytes: number;
 }
 
 /**
  * Defines advanced search parameters for queries such as condition, location, sponsor, etc.
  */
 export interface AdvancedSearchParams {
-    location?: {
-        latitude?: number;
-        longitude?: number;
-        radius?: string;
-    };
-    condition?: string;
-    sponsor?: string;
-    status?: string[];
+  location?: {
+    latitude?: number;
+    longitude?: number;
+    radius?: string;
+  };
+  condition?: string;
+  sponsor?: string;
+  status?: string[];
 }
 
 /**
- * Represents data for the Status Chart (Bar Chart).
+ * ChartJS data shape for bar charts (Status).
  */
-export interface StatusData extends ChartData<"bar", number[], string> { }
+export interface StatusData extends ChartData<"bar", number[], string> {}
 
 /**
- * Represents data for the Condition Chart (Pie Chart).
+ * ChartJS data shape for pie charts (Conditions).
  */
-export interface ConditionData extends ChartData<"pie", number[], string> { }
+export interface ConditionData extends ChartData<"pie", number[], string> {}
 
 /**
- * Represents data for the Trend Chart (Line Chart).
+ * ChartJS data shape for line charts (Trends).
  */
-export interface TrendData extends ChartData<"line", number[], string> { }
+export interface TrendData extends ChartData<"line", number[], string> {}
