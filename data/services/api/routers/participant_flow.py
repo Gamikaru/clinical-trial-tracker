@@ -15,12 +15,14 @@ def get_participant_flow_endpoint(nct_id: str, request: Request = None):
     check_rate_limit(client_ip)
 
     try:
-        data = fetch_single_study(nct_id, fields=["protocolSection.resultsSection"])
-        if not data.get("protocolSection", {}).get("resultsSection"):
+        # Request 'protocolSection' and 'resultsSection' as separate fields
+        data = fetch_single_study(nct_id, fields=["protocolSection", "resultsSection"])
+
+        if not data.get("resultsSection"):
             logger.debug(f"get_participant_flow_endpoint | No results section found for NCT ID={nct_id}")
             return {"message": "No results section found for this study"}
 
-        funnel = parse_participant_flow(data["protocolSection"]["resultsSection"])
+        funnel = parse_participant_flow(data["resultsSection"])
         logger.debug(f"get_participant_flow_endpoint | Parsed funnel data: {funnel}")
         return {"funnel": funnel}
     except HTTPException as e:

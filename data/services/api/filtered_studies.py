@@ -84,64 +84,6 @@ def get_filtered_studies(
         raise HTTPException(status_code=500, detail=str(exc))
 
 
-
-@router.get("/filtered-studies/multi-conditions")
-def get_filtered_studies_multi_conditions(
-    request: Request,
-    conditions: Optional[List[str]] = Query(None, description="List of conditions to filter by"),
-    page_size: int = Query(10, ge=1, le=1000, description="Number of studies per page"),
-    page_token: Optional[str] = Query(None, description="Token for pagination")
-):
-    """
-    Retrieve studies filtered by multiple conditions.
-
-    Example:
-    /api/filtered-studies/multi-conditions?conditions=cancer&conditions=diabetes&page_size=5
-    """
-    client_ip = request.client.host
-    check_rate_limit(client_ip)
-
-    try:
-        if not conditions:
-            raise HTTPException(status_code=400, detail="At least one condition must be specified.")
-
-        # Construct the Essie expression for multiple conditions
-        query_conditions = " AND ".join([f"('{cond.strip()}')" for cond in conditions])
-        logger.debug(f"get_filtered_studies_multi_conditions | Conditions: {query_conditions}")
-
-        # Fetch raw data with the constructed conditions
-        raw_json = fetch_raw_data(
-            condition=query_conditions,
-            page_size=page_size,
-            page_token=page_token,
-            sort=["nctId:asc"]  # Optional: default sorting
-        )
-        logger.debug(f"get_filtered_studies_multi_conditions | Raw JSON data fetched: {raw_json}")
-
-        # Clean and transform the data
-        cleaned_data = clean_and_transform_data(raw_json)
-        logger.debug(f"get_filtered_studies_multi_conditions | Cleaned data: {cleaned_data}")
-
-        if not cleaned_data:
-            return {"count": 0, "studies": [], "nextPageToken": None}
-
-        # Handle pagination token
-        next_token = raw_json.get("nextPageToken", None)
-        logger.debug(f"get_filtered_studies_multi_conditions | Next page token: {next_token}")
-
-        return {
-            "count": len(cleaned_data),
-            "studies": cleaned_data,
-            "nextPageToken": next_token
-        }
-
-    except HTTPException as e:
-        logger.error(f"get_filtered_studies_multi_conditions | HTTPException: {e.detail}")
-        raise e
-    except Exception as exc:
-        logger.exception("get_filtered_studies_multi_conditions | Unexpected error.")
-        raise HTTPException(status_code=500, detail=str(exc))
-
 @router.get("/filtered-studies/geo-bounds")
 def get_filtered_studies_geo_bounds(
     request: Request,

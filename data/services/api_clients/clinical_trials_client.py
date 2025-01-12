@@ -69,6 +69,7 @@ def fetch_raw_data(
         raise HTTPException(status_code=500, detail="Failed to fetch raw data.")
 
 @logger.catch
+@logger.catch
 def fetch_single_study(nct_id: str, fields: Optional[List[str]] = None) -> Dict[str, Any]:
     """
     Fetch details for a single study by NCT ID from the v2 API.
@@ -90,10 +91,19 @@ def fetch_single_study(nct_id: str, fields: Optional[List[str]] = None) -> Dict[
         logger.exception("[ERROR fetch_single_study] Unhandled request exception.")
         raise HTTPException(status_code=500, detail="Failed to fetch single study.")
 
+
+# Example usage
+# nct_id = "NCT03540771"
+# study_data = fetch_single_study(nct_id, fields=["protocolSection", "resultsSection"])
+# print(study_data)
+
 @logger.catch
 def fetch_study_enums() -> List[Dict[str, Any]]:
     """
     Fetch all enumerations from the v2 API.
+
+    Returns:
+        List[Dict[str, Any]]: A list of enumeration types and their values.
     """
     url = f"{API_BASE_URL}/studies/enums"
     logger.debug(f"fetch_study_enums | GET {url}")
@@ -104,14 +114,20 @@ def fetch_study_enums() -> List[Dict[str, Any]]:
         data = response.json()
         logger.debug(f"fetch_study_enums | Retrieved {len(data)} enums.")
         return data
-    except requests.RequestException:
+    except requests.RequestException as e:
         logger.exception("[ERROR fetch_study_enums] Unhandled request exception.")
         raise HTTPException(status_code=500, detail="Failed to fetch study enums.")
+    except Exception as e:
+        logger.exception("[ERROR fetch_study_enums] Unexpected error.")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @logger.catch
 def fetch_search_areas() -> List[Dict[str, Any]]:
     """
     Fetch all search areas from the v2 API.
+
+    Returns:
+        List[Dict[str, Any]]: A list of search areas and their details.
     """
     url = f"{API_BASE_URL}/studies/search-areas"
     logger.debug(f"fetch_search_areas | GET {url}")
@@ -122,10 +138,12 @@ def fetch_search_areas() -> List[Dict[str, Any]]:
         data = response.json()
         logger.debug(f"fetch_search_areas | Retrieved {len(data)} search areas.")
         return data
-    except requests.RequestException:
+    except requests.RequestException as e:
         logger.exception("[ERROR fetch_search_areas] Unhandled request exception.")
         raise HTTPException(status_code=500, detail="Failed to fetch search areas.")
-
+    except Exception as e:
+        logger.exception("[ERROR fetch_search_areas] Unexpected error.")
+        raise HTTPException(status_code=500, detail=str(e))
 @logger.catch
 def fetch_field_values(fields: List[str], field_types: Optional[List[str]] = None) -> List[Dict[str, Any]]:
     """

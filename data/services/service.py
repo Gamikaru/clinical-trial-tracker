@@ -1,7 +1,8 @@
 # data.services.service
 
-from typing import List, Dict, Any, Optional
+from fastapi import APIRouter, HTTPException, Request, Query
 from loguru import logger
+from typing import Optional, List, Dict, Any
 from fastapi import HTTPException, Request
 from .utils.rate_limiting import check_rate_limit
 from .api_clients.clinical_trials_client import (
@@ -10,7 +11,8 @@ from .api_clients.clinical_trials_client import (
     fetch_study_enums,
     fetch_search_areas,
     fetch_field_values,
-    fetch_study_sizes
+    fetch_study_sizes,
+
 )
 from .data_processing.data_cleaning import clean_and_transform_data
 from .data_processing.participant_flow import parse_participant_flow
@@ -19,6 +21,7 @@ from .analysis.enrollment_analysis import (
     calculate_enrollment_rates,
     aggregate_conditions
 )
+
 
 @logger.catch
 def get_study_details(nct_id: str, fields: Optional[List[str]] = None, request: Optional[Request] = None) -> Dict[str, Any]:
@@ -47,6 +50,12 @@ def get_study_details(nct_id: str, fields: Optional[List[str]] = None, request: 
 def get_enums(request: Optional[Request] = None) -> List[Dict[str, Any]]:
     """
     Retrieve all study enumerations.
+
+    Args:
+        request (Request): The incoming request object.
+
+    Returns:
+        List[Dict[str, Any]]: A list of enumeration types and their values.
     """
     client_ip = request.client.host if request else "unknown"
     check_rate_limit(client_ip)
@@ -61,17 +70,20 @@ def get_enums(request: Optional[Request] = None) -> List[Dict[str, Any]]:
     except Exception as exc:
         logger.exception("get_enums | Unexpected error.")
         raise HTTPException(status_code=500, detail=str(exc))
-
 @logger.catch
-def get_search_areas(request: Optional[Request] = None) -> List[Dict[str, Any]]:
-    """
-    Retrieve all search areas.
-    """
+def get_search_areas(request: Optional[Request] = None, name: Optional[str] = None, param: Optional[str] = None) -> List[Dict[str, Any]]:
     client_ip = request.client.host if request else "unknown"
     check_rate_limit(client_ip)
 
     try:
         search_areas = fetch_search_areas()
+        if name:
+            search_areas = [area for area in search_areas if area['name'].lower() == name.lower()]
+        if param:
+            search_areas = [
+                area for area in search_areas
+                if any(sub_area['param'].lower() == param.lower() for sub_area in area['areas'])
+            ]
         logger.debug(f"get_search_areas | Retrieved search areas: {search_areas}")
         return search_areas
     except HTTPException as e:
