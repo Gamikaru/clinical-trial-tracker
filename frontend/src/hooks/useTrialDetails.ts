@@ -1,171 +1,55 @@
 /**
  * src/hooks/useTrialDetails.ts
  *
- * Fetch a single study from GET /studies/{nctId}?format=json
- * and parse relevant fields, including the resultsSection (participantFlowModule).
- *
- * This version is updated to include the data needed for charts/visualizations in
- *  TrialDetailsPage results tab.
+ * Fetch a single study from GET /api/studies/{nctId}?fields=...
+ * The data is fetched from your local Python backend.
  */
 
 import { useEffect, useState } from "react";
 import api from "../services/api";
 
-// Extend or reuse  existing definitions
-interface Eligibility {
-    criteria?: string;
-}
-
-/**
- * Because you're showing participant flow data, you want a shape for that:
- */
-interface ParticipantFlowModule {
-    groups?: { id: string; title: string }[];
-    periods?: {
-        milestones?: {
-            achievements?: { groupId: string; numSubjects: string }[];
-        }[];
-    }[];
-}
-
-/**
- * For the overall resultsSection, you might only fetch participantFlowModule for now.
- */
-interface ResultsSection {
-    participantFlowModule?: ParticipantFlowModule;
-}
-
-/**
- * Full trial details shape, including resultsSection if hasResults = true.
- */
-export interface TrialDetails {
-    id: string;              // or 'nctId' — up to you
+interface TrialDetails {
     nctId: string;
     briefTitle: string;
     overallStatus: string;
     hasResults: boolean;
     description?: string;
-    eligibility?: {
-        criteria?: string;
-    };
+    eligibility?: { criteria?: string };
     interventions?: string[];
-    resultsSection?: ResultsSection;  // <-- we store the results data here
+    resultsSection?: any; // or a typed object if you wish
 }
 
-const useTrialDetails = (id: string) => {
+const useTrialDetails = (nctId: string) => {
     const [trial, setTrial] = useState<TrialDetails | null>(null);
-    const [loading, setLoading] = useState<boolean>(false);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    /**
-     * fetchTrialDetails - calls /studies/{nctId}?format=json
-     * and transforms the response into a custom shape, including resultsSection.
-     */
     const fetchTrialDetails = async () => {
-        if (!id) return;
-
+        if (!nctId) return;
         setLoading(true);
         setError(null);
-        console.debug(`Fetching trial details for ID: ${id}`);
-
+        console.log(`[useTrialDetails] Fetching /api/studies/${nctId}`);
         try {
-            // GET /studies/{nctId} with the 'format=json' and  chosen fields
-            const response = await api.get(`/studies/${id}`, {
+            // e.g. GET /api/studies/NCT04000165?fields=...
+            const response = await api.get(`/api/studies/${nctId}`, {
                 params: {
-                    format: "json",
-                    // We add resultsSection so we can retrieve participantFlowModule, etc.
-                    fields: [
-                        "NCTId",
-                        "BriefTitle",
-                        "OverallStatus",
-                        "HasResults",
-                        "protocolSection.descriptionModule",        // for 'description'
-                        "protocolSection.eligibilityModule",        // for 'eligibility'
-                        "protocolSection.armsInterventionsModule",  // for 'interventions'
-                        "resultsSection",                           // for participant flow data
-                    ].join(","),
+                    fields: ["protocolSection.resultsSection"], // example optional fields
                 },
             });
-
-            console.debug("API response received:", response);
-            const data = response.data;
-
-            if (!data?.protocolSection) {
-                throw new Error("Invalid data format for trial details");
-            }
-
-            /**
-             * Extract key fields from the top-level & protocolSection
-             */
-            const nctId = data.protocolSection.identificationModule?.nctId || "";
-            const briefTitle =
-                data.protocolSection.identificationModule?.briefTitle || "";
-            const overallStatus =
-                data.protocolSection.statusModule?.overallStatus || "UNKNOWN";
-            const hasResults = data?.hasResults || false;
-
-            // Description from protocolSection.descriptionModule.briefSummary
-            const description =
-                data.protocolSection.descriptionModule?.briefSummary || "No summary";
-
-            // Eligibility from protocolSection.eligibilityModule.eligibilityCriteria
-            const eligibilityCriteria =
-                data.protocolSection.eligibilityModule?.eligibilityCriteria || "";
-            const eligibility = { criteria: eligibilityCriteria };
-
-            // Interventions from armsInterventionsModule.armGroupList => flatten the interventionList
-            const interventions =
-                data.protocolSection.armsInterventionsModule?.armGroupList?.reduce(
-                    (acc: string[], arm: any) => {
-                        if (Array.isArray(arm?.interventionList)) {
-                            arm.interventionList.forEach((intrv: any) => {
-                                if (typeof intrv === "string") {
-                                    acc.push(intrv);
-                                } else if (intrv?.interventionName) {
-                                    acc.push(intrv.interventionName);
-                                }
-                            });
-                        }
-                        return acc;
-                    },
-                    []
-                ) || [];
-
-            // We'll store the entire resultsSection for simpler chart usage
-            const resultsSection = data.resultsSection || {};
-
-            const transformed: TrialDetails = {
-                id: nctId,
-                nctId,
-                briefTitle,
-                overallStatus,
-                hasResults,
-                description,
-                eligibility,
-                interventions,
-                resultsSection,
-            };
-
-            console.debug("Transformed trial details (with results):", transformed);
-            setTrial(transformed);
+            setTrial(response.data);
         } catch (err: any) {
-            console.error("Error fetching trial details:", err);
-            setError(
-                err.response?.data?.message ||
-                err.message ||
-                "Failed to fetch trial details."
-            );
+            console.error("[useTrialDetails] Error:", err);
+            setError(err.message || "Failed to fetch trial details.");
             setTrial(null);
         } finally {
             setLoading(false);
-            console.debug("Fetching trial details completed.");
         }
     };
 
     useEffect(() => {
         fetchTrialDetails();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [id]);
+    }, [nctId]);
 
     return { trial, loading, error };
 };
