@@ -1,50 +1,39 @@
+/**
+ * src/hooks/useStudyStats.ts
+ *
+ * Example: calls GET /api/stats/size from your local Python backend
+ */
+
 import { useEffect, useState } from "react";
 import api from "../services/api";
 
 interface StudyStats {
-    totalCount: number; // We'll store totalStudies here
+    totalCount: number;
     averageSizeBytes: number;
     largestStudies: Array<{ id: string; sizeBytes: number }>;
-    // other fields as needed (percentiles, ranges, etc.)
 }
 
 const useStudyStats = () => {
     const [stats, setStats] = useState<StudyStats | null>(null);
-    const [loading, setLoading] = useState<boolean>(false);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const fetchStats = async () => {
-        console.log("Fetching study stats...");
-        setLoading(true);
-        setError(null);
-        try {
-            // GET /stats/size
-            const response = await api.get("/stats/size");
-            console.log("API response:", response);
-
-            // The official API returns 'totalStudies', we rename it to 'totalCount'
-            const rawData = response.data;
-            console.log("Raw data:", rawData);
-
-            const normalizedData: StudyStats = {
-                totalCount: rawData.totalStudies || 0,
-                averageSizeBytes: rawData.averageSizeBytes,
-                largestStudies: rawData.largestStudies || [],
-            };
-            console.log("Normalized data:", normalizedData);
-
-            setStats(normalizedData);
-        } catch (err: any) {
-            console.error("Error fetching stats:", err);
-            setError(err.message || "Failed to fetch statistics.");
-            setStats(null);
-        } finally {
-            setLoading(false);
-            console.log("Loading state set to false");
-        }
-    };
-
     useEffect(() => {
+        const fetchStats = async () => {
+            setLoading(true);
+            setError(null);
+            console.log("[useStudyStats] Calling GET /api/stats/size");
+            try {
+                const response = await api.get("/api/stats/size");
+                setStats(response.data);
+            } catch (err: any) {
+                console.error("[useStudyStats] Error:", err);
+                setError(err.message || "Failed to fetch study stats.");
+            } finally {
+                setLoading(false);
+            }
+        };
+
         fetchStats();
     }, []);
 

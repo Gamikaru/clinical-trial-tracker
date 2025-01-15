@@ -1,8 +1,8 @@
 /**
  * src/pages/TrialDetailsPage.tsx
  *
- * A more polished trial details page with optional tabs to separate content logically,
- * including a new "Results" tab with a bar chart (if `trial.hasResults` is true).
+ * Shows details of a single trial, fetched from /api/studies/{nctId}.
+ * Also includes an optional "Results" tab if `hasResults = true`.
  */
 
 import { motion } from "framer-motion";
@@ -12,13 +12,13 @@ import useTrialDetails from "../hooks/useTrialDetails";
 
 // CHART IMPORTS
 import {
-  BarElement,
-  CategoryScale,
-  Chart as ChartJS,
-  Title as ChartTitle,
-  Legend,
-  LinearScale,
-  Tooltip,
+    BarElement,
+    CategoryScale,
+    Chart as ChartJS,
+    Title as ChartTitle,
+    Legend,
+    LinearScale,
+    Tooltip,
 } from "chart.js";
 import { Bar } from "react-chartjs-2";
 
@@ -32,10 +32,9 @@ ChartJS.register(
   Legend
 );
 
-/**
- * getStatusBadge - determines which DaisyUI badge to apply.
- */
-const getStatusBadge = (status: string) => {
+/** Helper for status styling */
+const getStatusBadge = (status: string | undefined) => {
+  if (!status) return "badge-neutral";
   switch (status.toLowerCase()) {
     case "recruiting":
       return "badge-info";
@@ -49,71 +48,56 @@ const getStatusBadge = (status: string) => {
       return "badge-neutral";
   }
 };
-
 const TrialDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { trial, loading, error } = useTrialDetails(id || "");
 
-  // Tab navigation state
-  // We'll add "results" tab if the trial has results
   const [activeTab, setActiveTab] = useState<
     "overview" | "eligibility" | "interventions" | "results"
   >("overview");
-
-  // Example chart data from participant flow, if any
   const [flowData, setFlowData] = useState<any>(null);
 
+  // Example participant flow chart creation
   useEffect(() => {
-    if (trial && trial.resultsSection) {
-      // We'll look for participantFlowModule => groups => flowGroupTitle vs total participants
+    if (trial?.resultsSection) {
       const flowModule = trial.resultsSection.participantFlowModule;
       if (flowModule?.groups?.length) {
-        // For each group, we can try to see how many participants started (FlowAchievementNumSubjects, etc.)
-        // We'll keep it simple and chart the groupTitle vs the # started
         const groupTitles: string[] = [];
         const groupParticipants: number[] = [];
 
-        // The first "milestone" might be the "STARTED" milestone
-        // We'll gather that from flowModule.periods?
-        // If we want to keep it simpler: show all group titles with "FlowGroupId"?
-        // We'll do a direct approach:
         const { groups, periods } = flowModule;
+        // e.g. the first milestone might be "STARTED" => achievements => groupId => numSubjects
+        const startedMilestone = periods?.[0]?.milestones?.find(
+          (m: any) => m.type === "STARTED"
+        );
+        if (startedMilestone) {
+          startedMilestone.achievements.forEach((ach: any) => {
+            // find the group info
+            const group = groups.find((g: any) => g.id === ach.groupId);
+            if (group) {
+              groupTitles.push(group.title || "Unnamed Group");
+              const num = parseInt(ach.numSubjects || "0", 10);
+              groupParticipants.push(num);
+            }
+          });
 
-        // We gather a map of groupId -> # participants from the first milestone in the first period
-        const startedMilestone = periods?.[0]?.milestones?.[0];
-        // e.g. startedMilestone.achievements => array of FlowStats with groupId, numSubjects
-        const achievements = startedMilestone?.achievements || [];
-
-        // groupTitles can come from "flowModule.groups.title"
-        groups.forEach((g: any) => {
-          groupTitles.push(g.title || "Untitled Group");
-          // find the achievement for that group
-          const foundAch = achievements.find((a: any) => a.groupId === g.id);
-          const numSubjects = parseInt(foundAch?.numSubjects || "0", 10);
-          groupParticipants.push(numSubjects);
-        });
-
-        // Now define chart data
-        setFlowData({
-          labels: groupTitles,
-          datasets: [
-            {
-              label: "Participants Started",
-              data: groupParticipants,
-              backgroundColor: "rgba(54,162,235,0.6)",
-              borderColor: "rgba(54,162,235,1)",
-              borderWidth: 1,
-            },
-          ],
-        });
+          // Build chart data
+          setFlowData({
+            labels: groupTitles,
+            datasets: [
+              {
+                label: "Participants Started",
+                data: groupParticipants,
+                backgroundColor: "rgba(54,162,235,0.6)",
+                borderColor: "rgba(54,162,235,1)",
+                borderWidth: 1,
+              },
+            ],
+          });
+        }
       }
     }
   }, [trial]);
-
-  useEffect(() => {
-    // debugging or side-effects if needed
-    // console.log("Trial details with results section:", trial);
-  }, [trial, loading, error]);
 
   if (loading) {
     return (
@@ -122,16 +106,13 @@ const TrialDetailsPage: React.FC = () => {
       </div>
     );
   }
-
   if (error) {
     return <p className="text-red-500 text-center mt-4">{error}</p>;
   }
-
   if (!trial) {
     return <p className="text-center mt-4">No trial found.</p>;
   }
 
-  // If the trial has results, let's show a "results" tab
   const tabs = ["overview", "eligibility", "interventions"];
   if (trial.hasResults) {
     tabs.push("results");
@@ -150,27 +131,24 @@ const TrialDetailsPage: React.FC = () => {
           {trial.briefTitle}
         </h2>
 
-        {/* Top Bar: Status, Has Results, NCT ID */}
+        {/* Top bar: status, hasResults, NCT ID */}
         <div className="flex flex-col md:flex-row items-center justify-between mb-6">
           <div className="mb-4 md:mb-0">
             <span
               className={`badge ${getStatusBadge(trial.overallStatus)} mr-2`}
             >
-              {trial.overallStatus}
+              {trial.overallStatus || "Unknown Status"}
             </span>
-
             {trial.hasResults ? (
               <span className="badge badge-success">Has Results</span>
             ) : (
               <span className="badge badge-error">No Results</span>
             )}
-
             <p className="mt-2 text-sm text-gray-500">
               <strong>NCT ID:</strong> {trial.nctId}
             </p>
           </div>
 
-          {/* “Back to Trials” Button */}
           <Link to="/trials" className="btn btn-secondary">
             Back to Trials
           </Link>
@@ -178,15 +156,15 @@ const TrialDetailsPage: React.FC = () => {
 
         {/* Tab Buttons */}
         <div className="tabs mb-4">
-          {tabs.map((tabKey) => (
+          {tabs.map((tab) => (
             <button
-              key={tabKey}
+              key={tab}
               className={`tab tab-bordered ${
-                activeTab === tabKey ? "tab-active" : ""
+                activeTab === tab ? "tab-active" : ""
               }`}
-              onClick={() => setActiveTab(tabKey as typeof activeTab)}
+              onClick={() => setActiveTab(tab as typeof activeTab)}
             >
-              {tabKey.charAt(0).toUpperCase() + tabKey.slice(1)}
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
         </div>
@@ -195,19 +173,17 @@ const TrialDetailsPage: React.FC = () => {
         <div className="mt-4">
           {activeTab === "overview" && (
             <motion.div
-              key="overview"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
               <h3 className="text-xl font-semibold mb-2">Description</h3>
-              <p>{trial.description}</p>
+              <p>{trial.description || "No Description"}</p>
             </motion.div>
           )}
 
           {activeTab === "eligibility" && (
             <motion.div
-              key="eligibility"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
@@ -221,30 +197,26 @@ const TrialDetailsPage: React.FC = () => {
 
           {activeTab === "interventions" && (
             <motion.div
-              key="interventions"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
               <h3 className="text-xl font-semibold mb-2">Interventions</h3>
               <p>
-                {trial.interventions && trial.interventions.length > 0
+                {trial.interventions && trial.interventions.length
                   ? trial.interventions.join(", ")
                   : "N/A"}
               </p>
             </motion.div>
           )}
 
-          {/* Results Tab: Only shown if hasResults === true */}
           {activeTab === "results" && trial.hasResults && (
             <motion.div
-              key="results"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
               <h3 className="text-xl font-semibold mb-4">Trial Results</h3>
-              {/* We'll show a bar chart of participant flow group vs. # started */}
               {flowData ? (
                 <div style={{ maxWidth: "700px", margin: "0 auto" }}>
                   <Bar
@@ -257,9 +229,7 @@ const TrialDetailsPage: React.FC = () => {
                           text: "Participant Flow (Started)",
                           font: { size: 18 },
                         },
-                        legend: {
-                          position: "top",
-                        },
+                        legend: { position: "top" },
                       },
                       scales: {
                         y: { beginAtZero: true },
@@ -269,7 +239,7 @@ const TrialDetailsPage: React.FC = () => {
                 </div>
               ) : (
                 <p className="text-gray-500">
-                  No participant flow data available to visualize.
+                  No participant flow data available.
                 </p>
               )}
             </motion.div>

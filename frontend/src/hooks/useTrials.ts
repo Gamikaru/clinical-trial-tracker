@@ -1,17 +1,20 @@
+/**
+ * src/hooks/useTrials.ts
+ *
+ * Hook for fetching a paginated list of trials from the local Python endpoint:
+ * GET /api/filtered-studies
+ */
+
 import { useEffect, useState } from "react";
 import api from "../services/api";
 
-// Extend or reuse your existing Trial interface
+/** Basic shape of a trial record. */
 export interface Trial {
     nctId: string;
     briefTitle: string;
     overallStatus: string;
-    orgStudyId?: string;
-    secondaryIds?: string[];
-    startDate?: string;
-    lastUpdatePostDate?: string;
-    hasResults: boolean;
     condition?: string;
+    hasResults: boolean;
 }
 
 interface UseTrialsReturn {
@@ -19,129 +22,78 @@ interface UseTrialsReturn {
     loading: boolean;
     error: string | null;
     nextPageToken: string | null;
-    refetch: (additionalParams?: any) => void;
     fetchNextPage: () => void;
     resetResults: () => void;
 }
 
-const useTrials = (initialParams: any): UseTrialsReturn => {
+interface TrialsHookParams {
+    pageSize?: number;
+    format?: string;
+    [key: string]: any; // for additional advanced search props
+}
+
+const useTrials = (initialParams: TrialsHookParams = {}): UseTrialsReturn => {
     const [trials, setTrials] = useState<Trial[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [nextPageToken, setNextPageToken] = useState<string | null>(null);
 
     // Merge user-provided params with defaults
-    const [params, setParams] = useState<any>({
+    const [params, setParams] = useState<TrialsHookParams>({
         format: "json",
-        pageSize: initialParams?.pageSize ?? 1000, // Increased pageSize
-        fields:
-            "NCTId," +
-            "protocolSection.identificationModule.orgStudyIdInfo.id," +
-            "protocolSection.identificationModule.secondaryIdInfos.id," +
-            "protocolSection.identificationModule.briefTitle," +
-            "protocolSection.statusModule.overallStatus," +
-            "protocolSection.statusModule.startDateStruct.date," +
-            "protocolSection.statusModule.lastUpdatePostDateStruct.date," +
-            "protocolSection.conditionsModule," +
-            "HasResults",
+        pageSize: 10,
         ...initialParams,
     });
 
     /**
-     * refetch: let external code override or update params
-     * and clear existing data so we start fresh.
+     * Clears the local trial list and page token, so we can start fresh
      */
-    const refetch = (additionalParams?: any) => {
+    const resetResults = () => {
         setTrials([]);
         setNextPageToken(null);
-        setParams((prev: any) => ({
-            ...prev,
-            ...additionalParams,
-        }));
     };
 
     /**
-     * fetchTrials: call /studies
+     * fetchTrials - calls /api/filtered-studies with whatever query params are in `params`.
      */
     const fetchTrials = async (extraParams?: any) => {
         setLoading(true);
         setError(null);
+
         try {
             const finalParams = { ...params, ...extraParams };
-            console.debug("useTrials: calling GET /studies with params:", finalParams);
+            console.log("[useTrials] GET /api/filtered-studies with:", finalParams);
 
-            const response = await api.get("/studies", { params: finalParams });
+            const response = await api.get("/api/filtered-studies", {
+                params: finalParams,
+            });
             const data = response.data;
 
             if (data && Array.isArray(data.studies)) {
-                // Transform raw data to local shape
-                const newTrials = data.studies.map((study: any) => {
-                    const nctId = study?.protocolSection?.identificationModule?.nctId || "";
-                    const orgStudyId =
-                        study?.protocolSection?.identificationModule?.orgStudyIdInfo?.id || "";
-                    const secIdInfos =
-                        study?.protocolSection?.identificationModule?.secondaryIdInfos || [];
-                    const secondaryIds = secIdInfos.map((sec: any) => sec?.id || "");
-                    const briefTitle =
-                        study?.protocolSection?.identificationModule?.briefTitle || "";
-                    const overallStatus =
-                        study?.protocolSection?.statusModule?.overallStatus || "UNKNOWN";
-                    const startDate =
-                        study?.protocolSection?.statusModule?.startDateStruct?.date || null;
-                    const lastUpdatePostDate =
-                        study?.protocolSection?.statusModule?.lastUpdatePostDateStruct?.date ||
-                        null;
-                    const conditionList =
-                        study?.protocolSection?.conditionsModule?.conditions || [];
-                    const condition = conditionList[0] || "No Condition Info";
-                    const hasResults = study?.hasResults || false;
+                // Transform raw data into local shape
+                const newTrials: Trial[] = data.studies.map((item: any) => ({
+                    nctId: item.nctId,
+                    briefTitle: item.briefTitle,
+                    overallStatus: item.overallStatus,
+                    condition: item.condition || "",
+                    hasResults: !!item.hasResults,
+                }));
 
-                    return {
-                        nctId,
-                        orgStudyId,
-                        secondaryIds,
-                        briefTitle,
-                        overallStatus,
-                        startDate,
-                        lastUpdatePostDate,
-                        hasResults,
-                        condition,
-                    };
-                });
-
-                // Deduplicate by nctId (important if next page re-sends duplicates)
-                setTrials((prev) => {
-                    const merged = [...prev, ...newTrials];
-                    const uniqueByNCT = merged.reduce((acc, trial) => {
-                        if (!acc.some((t: Trial) => t.nctId === trial.nctId)) {
-                            acc.push(trial);
-                        }
-                        return acc;
-                    }, [] as Trial[]);
-                    return uniqueByNCT;
-                });
-
+                setTrials((prev) => [...prev, ...newTrials]);
                 setNextPageToken(data.nextPageToken || null);
             } else {
-                throw new Error("Data did not contain a valid 'studies' array.");
+                throw new Error("Invalid response structure: no `studies` array.");
             }
         } catch (err: any) {
-            if (err.response) {
-                console.error("API Error Response:", err.response.data);
-                setError(err.response.data.message || "Failed to fetch trials.");
-            } else {
-                console.error("Error fetching trials:", err);
-                setError(err.message || "Failed to fetch trials.");
-            }
-            // Clear trials if there's an error
-            setTrials([]);
+            console.error("[useTrials] Error:", err);
+            setError(err.message || "Failed to fetch trials.");
         } finally {
             setLoading(false);
         }
     };
 
     /**
-     * fetchNextPage - load the next page of trials if nextPageToken is present
+     * fetchNextPage - load next page if nextPageToken is present.
      */
     const fetchNextPage = () => {
         if (nextPageToken) {
@@ -149,16 +101,9 @@ const useTrials = (initialParams: any): UseTrialsReturn => {
         }
     };
 
-    /**
-     * resetResults - clears existing trials and nextPageToken
-     */
-    const resetResults = () => {
-        setTrials([]);
-        setNextPageToken(null);
-    };
-
-    // On mount or whenever params changes, fetch the first page
+    // On mount or whenever `params` changes, load new trials
     useEffect(() => {
+        resetResults();
         fetchTrials();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [JSON.stringify(params)]);
@@ -168,7 +113,6 @@ const useTrials = (initialParams: any): UseTrialsReturn => {
         loading,
         error,
         nextPageToken,
-        refetch,
         fetchNextPage,
         resetResults,
     };
